@@ -283,7 +283,7 @@
               setNotifPermission(permission);
               if (permission === 'granted') {
                 new Notification("Đã bật thông báo!", {
-                  body: "Ứng dụng sẽ nhắc nhở việc nhà chưa hoàn thành vào lúc 7h tối mỗi ngày.",
+                  body: "Ứng dụng sẽ nhắc nhở việc nhà chưa hoàn thành vào lúc 8h tối mỗi ngày.",
                   icon: "https://cdn-icons-png.flaticon.com/512/1048/1048953.png"
                 });
               }
@@ -320,7 +320,7 @@
             });
           };
 
-          // Dynamic background interval check for 7:00 PM (19:00) daily
+          // Dynamic background interval check for 8:00 PM (20:00) daily
           useEffect(() => {
             if (!notifSupported || notifPermission !== 'granted') return;
 
@@ -330,7 +330,7 @@
               const minutes = now.getMinutes();
 
               // Check at 7:00 PM (19:00)
-              if (hours === 19 && minutes === 0) {
+              if (hours === 20 && minutes === 0) {
                 const todayDateString = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
                 const alreadySent = localStorage.getItem(`notif-sent-${todayDateString}`);
 
