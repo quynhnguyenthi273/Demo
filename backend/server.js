@@ -7,15 +7,13 @@ require('dotenv').config();
 const app = express();
 
 // Cho phép Vercel kết nối bảo mật tới Server này với cấu hình CORS tối ưu nhất
+// Middleware này tự động xử lý toàn bộ các yêu cầu CORS, bao gồm cả các yêu cầu OPTIONS pre-flight ngầm
 app.use(cors({
   origin: '*', // Cho phép mọi nguồn kết nối an toàn (Hoặc bạn có thể dán link Vercel cụ thể vào đây)
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
   credentials: true
 }));
-
-// Tự động xử lý các yêu cầu pre-flight OPTIONS để trình duyệt di động/máy tính không chặn kết nối
-app.options('*', cors());
 
 app.use(express.json());
 
