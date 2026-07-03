@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Lịch Trực Nhật 3 Nàng Thơ</title>
     
     <!-- PWA & Mobile Web App Meta Tags -->
@@ -31,6 +31,13 @@
         .custom-scrollbar::-webkit-scrollbar-thumb {
             background: #cbd5e1;
             border-radius: 4px;
+        }
+        /* Custom smooth check animation */
+        .checkbox-bounce {
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .checkbox-bounce:active {
+            transform: scale(0.9);
         }
     </style>
 </head>
@@ -84,19 +91,21 @@
 
         function App() {
           // 🔽 1. ĐƯỜNG DẪN ĐẾN SERVER RENDER CỦA BẠN 🔽
-          // Hãy thay thế link dưới đây bằng đường link Render Web Service thật của bạn nhé!
           const BACKEND_URL = "https://lich-truc.onrender.com";
 
           // 🔽 2. MÃ KHÓA PUBLIC KEY ĐỂ GỬI THÔNG BÁO 🔽
-          // Hãy thay thế chuỗi dưới đây bằng mã Public Key thật bạn đã tạo ở Terminal
           const VAPID_PUBLIC_KEY = "BEXNDZvu8lSYTdMM6srjwUtfWtRN1LSWtXCZqOifQYc410DUdC5fWKObmKebFAeqRN47MfgMMLxCbT1PVJcZhOo";
 
           const [currentYear, setCurrentYear] = useState(2026);
-          const [currentMonth, setCurrentMonth] = useState(7); // Bắt đầu từ tháng 7
+          const [currentMonth, setCurrentMonth] = useState(7); // Mặc định tháng 7
           const [selectedRoommate, setSelectedRoommate] = useState('all');
           const [selectedTaskType, setSelectedTaskType] = useState('all');
           const [currentDayDetail, setCurrentDayDetail] = useState(1);
           const [viewMode, setViewMode] = useState('calendar');
+
+          // Trạng thái kết nối Server Render
+          const [serverConnected, setServerConnected] = useState(false);
+          const [isConnecting, setIsConnecting] = useState(true);
 
           // Trạng thái thông báo
           const [notifSupported, setNotifSupported] = useState(false);
@@ -108,8 +117,11 @@
             return saved || '20:00'; 
           });
 
-          // Trạng thái hoàn thành được đồng bộ với MongoDB qua Render
-          const [completedTasks, setCompletedTasks] = useState({});
+          // Trạng thái hoàn thành: Ưu tiên nạp từ bộ nhớ máy trước
+          const [completedTasks, setCompletedTasks] = useState(() => {
+            const saved = localStorage.getItem('completedTasks');
+            return saved ? JSON.parse(saved) : {};
+          });
 
           // Sổ phạt lưu cục bộ tại máy
           const [penaltiesByMonth, setPenaltiesByMonth] = useState(() => {
@@ -117,7 +129,43 @@
             return saved ? JSON.parse(saved) : {};
           });
 
-          // Trình hỗ trợ chuyển đổi mã bảo mật VAPID đặt bên trong App để đảm bảo phạm vi hoạt động (Scope)
+          // THAY THẾ CHO TRÌNH DUYỆT ALERT/CONFIRM: Custom Modal State
+          const [modal, setModal] = useState({
+            isOpen: false,
+            title: '',
+            message: '',
+            isConfirm: false,
+            onConfirm: null
+          });
+
+          const showAlert = (title, message) => {
+            setModal({ isOpen: true, title, message, isConfirm: false, onConfirm: null });
+          };
+
+          const showConfirm = (title, message, onConfirmCallback) => {
+            setModal({
+              isOpen: true,
+              title,
+              message,
+              isConfirm: true,
+              onConfirm: () => {
+                onConfirm();
+                setModal(prev => ({ ...prev, isOpen: false }));
+              }
+            });
+            // Định nghĩa callback thực thi
+            window.pendingAction = onConfirmCallback;
+          };
+
+          const handleConfirmAction = () => {
+            if (window.pendingAction) {
+              window.pendingAction();
+              window.pendingAction = null;
+            }
+            setModal({ isOpen: false, title: '', message: '', isConfirm: false, onConfirm: null });
+          };
+
+          // Hàm phụ trợ chuyển đổi VAPID Key định dạng Uint8Array
           const urlBase64ToUint8Array = (base64String) => {
             try {
               const padding = '='.repeat((4 - base64String.length % 4) % 4);
@@ -134,18 +182,36 @@
             }
           };
 
-          // Tự động tải trạng thái hoàn thành từ server Render và đồng bộ sau mỗi 10 giây
+          // Lưu trạng thái hoàn thành cục bộ ngay lập tức để bảo vệ dữ liệu
+          useEffect(() => {
+            localStorage.setItem('completedTasks', JSON.stringify(completedTasks));
+          }, [completedTasks]);
+
+          // Tải dữ liệu từ Render và cập nhật liên tục mỗi 10 giây
           useEffect(() => {
             const fetchTasks = () => {
+              setIsConnecting(true);
               fetch(`${BACKEND_URL}/api/tasks`)
                 .then(res => {
-                  if (!res.ok) throw new Error("Server Render chưa phản hồi.");
+                  if (!res.ok) throw new Error("Phản hồi lỗi.");
                   return res.json();
                 })
                 .then(data => {
-                  if (data) setCompletedTasks(data);
+                  setServerConnected(true);
+                  setIsConnecting(false);
+                  if (data && Object.keys(data).length > 0) {
+                    setCompletedTasks(prev => {
+                      const merged = { ...prev, ...data };
+                      localStorage.setItem('completedTasks', JSON.stringify(merged));
+                      return merged;
+                    });
+                  }
                 })
-                .catch(err => console.log("Đang kết nối / Đồng bộ dữ liệu từ Render..."));
+                .catch(err => {
+                  console.warn("Render chưa sẵn sàng hoặc đang khởi động...");
+                  setServerConnected(false);
+                  setIsConnecting(false);
+                });
             };
 
             fetchTasks();
@@ -161,7 +227,7 @@
             localStorage.setItem('notifTime', notifTime);
           }, [notifTime]);
 
-          // Kiểm tra khả năng tương thích của trình duyệt di động
+          // Kiểm tra khả năng tương thích của trình duyệt
           useEffect(() => {
             if ('Notification' in window && 'serviceWorker' in navigator) {
               setNotifSupported(true);
@@ -289,20 +355,30 @@
             return stats;
           }, [scheduleData]);
 
-          // Đổi trạng thái tích hoàn thành đồng thời gửi lên Server Render lưu trữ tập trung
+          // Đổi trạng thái tích hoàn thành: Lưu ngay cục bộ và gửi lên database đám mây
           const toggleTaskComplete = (day, taskType) => {
             const key = `${currentYear}-${currentMonth}-${day}-${taskType}`;
             const nextState = !completedTasks[key];
 
-            // Tự động hiển thị tích xanh trước để tối ưu trải nghiệm (Optimistic UI)
-            setCompletedTasks(prev => ({ ...prev, [key]: nextState }));
+            // 1. Cập nhật UI và bộ nhớ cục bộ tức thì
+            setCompletedTasks(prev => {
+              const updated = { ...prev, [key]: nextState };
+              localStorage.setItem('completedTasks', JSON.stringify(updated));
+              return updated;
+            });
 
-            // Gửi đồng bộ lên database đám mây
+            // 2. Gửi đồng bộ lên cơ sở dữ liệu MongoDB Atlas
             fetch(`${BACKEND_URL}/api/tasks/toggle`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ key, completed: nextState })
-            }).catch(err => console.error("Lỗi gửi dữ liệu đồng bộ lên Render:", err));
+            })
+            .then(res => res.json())
+            .then(() => setServerConnected(true))
+            .catch(err => {
+              console.warn("Lưu trữ cục bộ thành công! Sẽ tự động đồng bộ đám mây khi Server hoạt động trở lại.");
+              setServerConnected(false);
+            });
           };
 
           const isTaskCompleted = (day, taskType) => {
@@ -337,15 +413,12 @@
           // --- ĐĂNG KÝ WEB PUSH ĐỂ NHẬN THÔNG BÁO CHẠY NGẦM ---
           const requestNotifPermission = async () => {
             if (!notifSupported) {
-              alert("Thiết bị hoặc trình duyệt này không hỗ trợ đăng ký nhận tin nhắn ngầm.");
+              showAlert("⚠️ Thiết bị chưa hỗ trợ", "Thiết bị hoặc trình duyệt này không hỗ trợ đăng ký nhận thông báo chạy ngầm.");
               return;
             }
 
             try {
-              // Đăng ký Service Worker
               const registration = await navigator.serviceWorker.register('/sw.js');
-              
-              // Yêu cầu cấp quyền từ hệ thống điện thoại
               const permission = await Notification.requestPermission();
               setNotifPermission(permission);
 
@@ -357,31 +430,30 @@
 
                 const subscription = await registration.pushManager.subscribe(subscribeOptions);
 
-                // Gửi thông tin định danh máy này lưu lên MongoDB Atlas
                 await fetch(`${BACKEND_URL}/api/subscribe`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify(subscription)
                 });
 
-                alert("🎉 Đã bật Chuông báo thành công! Bây giờ kể cả khi bạn đóng ứng dụng, điện thoại vẫn sẽ tự động nhận nhắc nhở trực nhật.");
+                showAlert("🎉 Thành công", "Đã kích hoạt chuông báo trực nhật thành công! Điện thoại sẽ tự động nhận nhắc nhở hằng ngày.");
               }
             } catch (err) {
               console.error("Lỗi đăng ký Web Push:", err);
-              alert("Không thể kích hoạt thông báo đẩy. Hãy chắc chắn bạn mở bằng Safari (iPhone) hoặc Chrome gốc nhé!");
+              showAlert("❌ Không thể kết nối", "Vui lòng mở ứng dụng từ màn hình chính (iPhone) hoặc kết nối HTTPS an toàn để bật tính năng.");
             }
           };
 
-          // Gửi một yêu cầu bắn thông báo thử nghiệm trực tiếp từ Backend Render
+          // Gửi thông báo thử nghiệm trực tiếp từ Backend Render
           const triggerTestNotification = () => {
             if (!notifSupported || notifPermission !== 'granted') {
-              alert("Bạn chưa cho phép nhận thông báo. Hãy nhấn nút 'Kích hoạt' trước nhé!");
+              showAlert("⚠️ Quyền thông báo", "Bạn chưa cấp quyền nhận thông báo. Hãy nhấn nút 'Kích hoạt' trước nhé!");
               return;
             }
             fetch(`${BACKEND_URL}/api/send-reminders`, {
               method: 'POST'
-            }).then(() => alert("Đã gửi lệnh thử nghiệm! Vui lòng chờ 1-2 giây xem trên màn hình khóa điện thoại nhé."))
-              .catch(err => alert("Lỗi kết nối tới máy chủ Render: " + err.message));
+            }).then(() => showAlert("✉️ Đã gửi lệnh", "Đã ra lệnh cho máy chủ Render bắn thông báo. Chờ 1-2 giây để nhận được tin nhé."))
+              .catch(err => showAlert("❌ Lỗi kết nối", "Máy chủ Render đang bận hoặc chưa thể phản hồi: " + err.message));
           };
 
           const handleMonthChange = (direction) => {
@@ -404,7 +476,10 @@
           };
 
           const resetMonthlyProgress = () => {
-             if(confirm(`Bạn có chắc muốn xóa tất cả dấu hoàn thành của Tháng ${currentMonth}/${currentYear} không?`)) {
+             showConfirm(
+               "🔄 Đặt lại tiến trình", 
+               `Bạn có chắc chắn muốn xóa toàn bộ lịch sử hoàn thành của Tháng ${currentMonth}/${currentYear} không?`, 
+               () => {
                  const newCompleted = { ...completedTasks };
                  Object.keys(newCompleted).forEach(key => {
                      if (key.startsWith(`${currentYear}-${currentMonth}-`)) {
@@ -412,7 +487,8 @@
                      }
                  });
                  setCompletedTasks(newCompleted);
-             }
+               }
+             );
           };
 
           const handleExportExcel = () => {
@@ -452,8 +528,65 @@
           };
 
           return (
-            <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-6 pb-24">
+            <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-6 pb-24 relative">
               
+              {/* Custom Notification Modal (Thay thế alert/confirm gốc của trình duyệt) */}
+              {modal.isOpen && (
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                  <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-xl border border-slate-100 space-y-4 animate-in fade-in zoom-in-95 duration-200">
+                    <h4 className="font-extrabold text-slate-900 text-lg">{modal.title}</h4>
+                    <p className="text-slate-600 text-sm leading-relaxed">{modal.message}</p>
+                    <div className="flex gap-3 pt-2 justify-end">
+                      {modal.isConfirm ? (
+                        <>
+                          <button 
+                            onClick={() => setModal({ isOpen: false, title: '', message: '', isConfirm: false, onConfirm: null })}
+                            className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all"
+                          >
+                            Hủy
+                          </button>
+                          <button 
+                            onClick={handleConfirmAction}
+                            className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow-md transition-all animate-bounce"
+                          >
+                            Xác nhận
+                          </button>
+                        </>
+                      ) : (
+                        <button 
+                          onClick={() => setModal({ isOpen: false, title: '', message: '', isConfirm: false, onConfirm: null })}
+                          className="px-5 py-2 bg-slate-950 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-md transition-all"
+                        >
+                          Đã hiểu
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Trạng thái kết nối Server */}
+              <div className="flex items-center justify-between px-4 py-2.5 bg-white rounded-2xl shadow-sm border border-slate-100 text-xs font-semibold">
+                <span className="text-slate-500 flex items-center gap-1.5">
+                  <span className="relative flex h-2 w-2">
+                    <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${serverConnected ? 'bg-emerald-400' : 'bg-amber-400'}`}></span>
+                    <span className={`relative inline-flex rounded-full h-2 w-2 ${serverConnected ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
+                  </span>
+                  Đồng bộ đám mây:
+                </span>
+                <div className="flex items-center gap-2">
+                  {isConnecting ? (
+                    <span className="text-amber-500 animate-pulse">⏳ Đang tải...</span>
+                  ) : serverConnected ? (
+                    <span className="text-emerald-600 flex items-center gap-1">🟢 Trực tuyến (MongoDB Atlas)</span>
+                  ) : (
+                    <span className="text-rose-500" title="Nếu Server Render đang ngủ đông, dữ liệu mới sẽ được tải lên khi bạn thực hiện tích chọn.">
+                      🟡 Chế độ dự phòng (Đang chờ đánh thức Server)
+                    </span>
+                  )}
+                </div>
+              </div>
+
               {/* Main Header with Month Changer */}
               <header className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                 <div>
