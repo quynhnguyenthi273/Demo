@@ -6,12 +6,17 @@ require('dotenv').config();
 
 const app = express();
 
-// Cho phép Vercel kết nối bảo mật tới Server này
+// Cho phép Vercel kết nối bảo mật tới Server này với cấu hình CORS tối ưu nhất
 app.use(cors({
   origin: '*', // Cho phép mọi nguồn kết nối an toàn (Hoặc bạn có thể dán link Vercel cụ thể vào đây)
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+  credentials: true
 }));
+
+// Tự động xử lý các yêu cầu pre-flight OPTIONS để trình duyệt di động/máy tính không chặn kết nối
+app.options('*', cors());
+
 app.use(express.json());
 
 // Kiểm tra và khởi tạo thông tin VAPID cho thông báo Web Push chạy ngầm
