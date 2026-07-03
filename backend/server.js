@@ -8,8 +8,9 @@ const app = express();
 
 // Cho phép Vercel kết nối bảo mật tới Server này
 app.use(cors({
-  origin: '*', 
-  methods: ['GET', 'POST']
+  origin: '*', // Cho phép mọi nguồn kết nối an toàn (Hoặc bạn có thể dán link Vercel cụ thể vào đây)
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
 
@@ -58,12 +59,13 @@ const Subscription = mongoose.model('Subscription', SubscriptionSchema);
 
 // --- ĐỊNH NGHĨA CÁC ĐƯỜNG DẪN API (ROUTES) ---
 
-// API 0: API kiểm tra sức khỏe của Server
+// 🟢 ROUTE TRANG CHỦ: Sửa lỗi "Cannot GET /" và dùng để kiểm tra xem Server/Database có chạy tốt không
 app.get('/', (req, res) => {
   res.json({ 
     status: "active", 
-    message: "Máy chủ Lịch Trực Nhật đang chạy cực tốt!",
-    database: mongoose.connection.readyState === 1 ? "Connected" : "Disconnected"
+    message: "🟢 Máy chủ Lịch Trực Nhật của 3 Nàng Thơ đang chạy cực tốt!",
+    database: mongoose.connection.readyState === 1 ? "Connected (Đã kết nối thành công)" : "Disconnected (Chưa kết nối)",
+    timestamp: new Date()
   });
 });
 
