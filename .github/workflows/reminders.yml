@@ -3,8 +3,7 @@ name: Tự động gửi thông báo trực nhật hằng ngày
 on:
   schedule:
     # GitHub sử dụng múi giờ UTC (quốc tế). Giờ Việt Nam = UTC + 7.
-    # Để gửi lúc 20:00 tối Việt Nam, ta cần đặt giờ UTC là 13:00 (20 - 7 = 13).
-    # Chạy vào lúc 13:00 UTC hằng ngày
+    # Chạy vào lúc 13:00 UTC hằng ngày (tương đương đúng 20:00 tối giờ Việt Nam)
     - cron: '0 13 * * *'
   workflow_dispatch: # Cho phép bạn bấm nút chạy thử thủ công trên web GitHub
 
@@ -14,6 +13,6 @@ jobs:
     steps:
       - name: Gửi yêu cầu kích hoạt thông báo đến Render
         run: |
-          curl -X POST "[https://lich-truc.onrender.com/api/send-reminders](https://lich-truc.onrender.com/api/send-reminders)" \
+          curl -X POST "https://lich-truc.onrender.com/api/send-reminders" \
           -H "Content-Type: application/json" \
           --max-time 120
