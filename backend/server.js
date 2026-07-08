@@ -176,6 +176,9 @@ app.post('/api/send-reminders', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-
+// Đường dẫn trang chủ chào mừng (Tùy chọn)
+app.get('/', (req, res) => {
+  res.send('<h1>🟢 Server Lịch Trực Nhật 3 Nàng Thơ đang chạy cực tốt!</h1>');
+});
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server đang chạy tại cổng ${PORT}`));
