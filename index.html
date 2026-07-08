@@ -1,931 +1,926 @@
 <!DOCTYPE html>
 <html lang="vi">
-
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Lịch Trực Nhật 3 Nàng Thơ</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Lịch Trực Nhật 3 Nàng Thơ</title>
+    
+    <!-- PWA & Mobile Web App Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Trực Nhật">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#312e81">
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React & Babel CDN -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-  <!-- PWA & Mobile Web App Meta Tags -->
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Trực Nhật">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="theme-color" content="#312e81">
-
-  <!-- Tailwind CSS CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- React & Babel CDN -->
-  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
-  <style>
-    /* Smooth scrolling inside lists */
-    .custom-scrollbar::-webkit-scrollbar {
-      width: 4px;
-    }
-
-    .custom-scrollbar::-webkit-scrollbar-track {
-      background: #f1f5f9;
-    }
-
-    .custom-scrollbar::-webkit-scrollbar-thumb {
-      background: #cbd5e1;
-      border-radius: 4px;
-    }
-  </style>
+    <style>
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+    </style>
 </head>
-
 <body class="bg-slate-50 text-slate-800 antialiased min-h-screen">
-  <div id="root"></div>
+    <div id="root"></div>
 
-  <!-- React App Script -->
-  <script type="text/babel">
-    const { useState, useMemo, useEffect } = React;
+    <script type="text/babel">
+        const { useState, useMemo, useEffect } = React;
 
-    // Configuration
-    const ROOMMATES = {
-      Ha: {
-        name: 'Hà',
-        color: 'red',
-        avatar: '🔴',
-        bg: 'bg-red-50',
-        text: 'text-red-700',
-        border: 'border-red-200',
-        badge: 'bg-red-100 text-red-800'
-      },
-      Quynh: {
-        name: 'Quỳnh',
-        color: 'emerald',
-        avatar: '🟢',
-        bg: 'bg-emerald-50',
-        text: 'text-emerald-700',
-        border: 'border-emerald-200',
-        badge: 'bg-emerald-100 text-emerald-800'
-      },
-      Thuy: {
-        name: 'Thúy',
-        color: 'blue',
-        avatar: '🔵',
-        bg: 'bg-blue-50',
-        text: 'text-blue-700',
-        border: 'border-blue-200',
-        badge: 'bg-blue-100 text-blue-800'
-      }
-    };
-
-    const TASKS = {
-      QUET_NHA: { name: 'Quét nhà', emoji: '🧹', color: 'amber' },
-      LAU_NHA: { name: 'Lau nhà', emoji: '💧', color: 'indigo' },
-      DO_RAC: { name: 'Đổ rác', emoji: '🗑️', color: 'gray' },
-      DON_BEP: { name: 'Dọn bếp', emoji: '☕', color: 'orange' },
-      BAN_CONG: { name: 'Ban công', emoji: '🌿', color: 'teal' },
-      CHA_SAN_GUONG: { name: 'Chà sàn & Lau gương', emoji: '✨', color: 'pink' },
-      CO_WC: { name: 'Cọ WC & Lavabo', emoji: '🚽', color: 'purple' }
-    };
-
-    function App() {
-      // 🔽 1. ĐƯỜNG DẪN ĐẾN SERVER RENDER CỦA BẠN 🔽
-      // Luôn khớp với máy chủ đang hoạt động trên Render của bạn
-      const BACKEND_URL = "https://lich-truc.onrender.com";
-
-      // 🔽 2. MÃ KHÓA PUBLIC KEY ĐỂ GỬI THÔNG BÁO 🔽
-      // Thay bằng chuỗi Public Key thật sinh ra từ Terminal ở Bước 3
-      const VAPID_PUBLIC_KEY = "BBFKvNcUynti_a8hELIlwomX5Jb1PFe-guscSTOd87pSn4lguTa9TGTijn4W5wXeMxkyMC1Z05DHODmoTQ_1reI";
-
-      // Lấy thời gian thực tế của thiết bị
-      const todayDateObj = useMemo(() => new Date(), []);
-
-      const [currentYear, setCurrentYear] = useState(todayDateObj.getFullYear());
-      const [currentMonth, setCurrentMonth] = useState(todayDateObj.getMonth() + 1); // getMonth() chạy từ 0-11 nên phải +1
-      const [currentDayDetail, setCurrentDayDetail] = useState(todayDateObj.getDate()); // Focus đúng ngày hiện tại
-
-      const [selectedRoommate, setSelectedRoommate] = useState('all');
-      const [selectedTaskType, setSelectedTaskType] = useState('all');
-      const [viewMode, setViewMode] = useState('calendar');
-
-      // Trạng thái kết nối Server Render
-      const [serverConnected, setServerConnected] = useState(false);
-      const [isConnecting, setIsConnecting] = useState(true);
-
-      // Trạng thái thông báo
-      const [notifSupported, setNotifSupported] = useState(false);
-      const [notifPermission, setNotifPermission] = useState('default');
-
-      // Giờ nhắc nhở mặc định 20:00 (8h tối)
-      const [notifTime, setNotifTime] = useState(() => {
-        const saved = localStorage.getItem('notifTime');
-        return saved || '20:00';
-      });
-
-      // Trạng thái hoàn thành: Ưu tiên nạp từ bộ nhớ máy trước giúp trải nghiệm tức thì (Offline-First)
-      const [completedTasks, setCompletedTasks] = useState(() => {
-        const saved = localStorage.getItem('completedTasks');
-        return saved ? JSON.parse(saved) : {};
-      });
-
-      // Sổ phạt lưu cục bộ tại máy
-      const [penaltiesByMonth, setPenaltiesByMonth] = useState(() => {
-        const saved = localStorage.getItem('penaltiesByMonth');
-        return saved ? JSON.parse(saved) : {};
-      });
-
-      // Custom Modal State thay thế alert/confirm gốc để bảo mật và tương thích tuyệt đối
-      const [modal, setModal] = useState({
-        isOpen: false,
-        title: '',
-        message: '',
-        isConfirm: false,
-        onConfirm: null
-      });
-
-      const showAlert = (title, message) => {
-        setModal({ isOpen: true, title, message, isConfirm: false, onConfirm: null });
-      };
-
-      const showConfirm = (title, message, onConfirmCallback) => {
-        setModal({
-          isOpen: true,
-          title,
-          message,
-          isConfirm: true,
-          onConfirm: () => {
-            onConfirmCallback();
-            setModal({ isOpen: false, title: '', message: '', isConfirm: false, onConfirm: null });
+        const ROOMMATES = {
+          Ha: { 
+            name: 'Hà', 
+            color: 'red', 
+            avatar: '🔴', 
+            bg: 'bg-red-50', 
+            text: 'text-red-700', 
+            border: 'border-red-200', 
+            badge: 'bg-red-100 text-red-800' 
+          },
+          Quynh: { 
+            name: 'Quỳnh', 
+            color: 'emerald', 
+            avatar: '🟢', 
+            bg: 'bg-emerald-50', 
+            text: 'text-emerald-700', 
+            border: 'border-emerald-200', 
+            badge: 'bg-emerald-100 text-emerald-800' 
+          },
+          Thuy: { 
+            name: 'Thúy', 
+            color: 'blue', 
+            avatar: '🔵', 
+            bg: 'bg-blue-50', 
+            text: 'text-blue-700', 
+            border: 'border-blue-200', 
+            badge: 'bg-blue-100 text-blue-800' 
           }
-        });
-      };
+        };
 
-      // Hàm phụ trợ chuyển đổi VAPID Key định dạng Uint8Array
-      const urlBase64ToUint8Array = (base64String) => {
-        try {
-          const padding = '='.repeat((4 - base64String.length % 4) % 4);
-          const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
-          const rawData = window.atob(base64);
-          const outputArray = new Uint8Array(rawData.length);
-          for (let i = 0; i < rawData.length; ++i) {
-            outputArray[i] = rawData.charCodeAt(i);
-          }
-          return outputArray;
-        } catch (e) {
-          console.error("Lỗi chuyển đổi Base64 VAPID:", e);
-          return new Uint8Array();
-        }
-      };
+        const TASKS = {
+          QUET_NHA: { name: 'Quét nhà', emoji: '🧹', color: 'amber' },
+          LAU_NHA: { name: 'Lau nhà', emoji: '💧', color: 'indigo' },
+          DO_RAC: { name: 'Đổ rác', emoji: '🗑️', color: 'gray' },
+          DON_BEP: { name: 'Dọn bếp', emoji: '☕', color: 'orange' },
+          BAN_CONG: { name: 'Ban công', emoji: '🌿', color: 'teal' },
+          CHA_SAN_GUONG: { name: 'Chà sàn & Lau gương', emoji: '✨', color: 'pink' },
+          CO_WC: { name: 'Cọ WC & Lavabo', emoji: '🚽', color: 'purple' }
+        };
 
-      // Lưu trạng thái hoàn thành cục bộ ngay lập tức để bảo vệ dữ liệu khi F5
-      useEffect(() => {
-        localStorage.setItem('completedTasks', JSON.stringify(completedTasks));
-      }, [completedTasks]);
+        function App() {
+          // 🔽 1. ĐƯỜNG DẪN ĐẾN SERVER RENDER CỦA BẠN 🔽
+          const BACKEND_URL = "https://lich-truc.onrender.com";
+          
+          // 🔽 2. MÃ KHÓA PUBLIC KEY ĐỂ GỬI THÔNG BÁO 🔽
+          const VAPID_PUBLIC_KEY = "BBFKvNcUynti_a8hELIlwomX5Jb1PFe-guscSTOd87pSn4lguTa9TGTijn4W5wXeMxkyMC1Z05DHODmoTQ_1reI";
 
-      // Tải dữ liệu từ Render và cập nhật liên tục mỗi 6 giây để đồng bộ mượt mà
-      useEffect(() => {
-        const fetchTasks = () => {
-          setIsConnecting(true);
-          fetch(`${BACKEND_URL}/api/tasks`)
-            .then(res => {
-              if (!res.ok) throw new Error("Phản hồi lỗi từ máy chủ.");
-              return res.json();
-            })
-            .then(data => {
-              setServerConnected(true);
-              setIsConnecting(false);
-              if (data && Object.keys(data).length > 0) {
-                setCompletedTasks(prev => {
-                  const merged = { ...prev, ...data };
-                  localStorage.setItem('completedTasks', JSON.stringify(merged));
-                  return merged;
-                });
+          const todayDateObj = useMemo(() => new Date(), []);
+          
+          const [currentYear, setCurrentYear] = useState(todayDateObj.getFullYear());
+          const [currentMonth, setCurrentMonth] = useState(todayDateObj.getMonth() + 1); 
+          const [currentDayDetail, setCurrentDayDetail] = useState(todayDateObj.getDate()); 
+
+          const [selectedRoommate, setSelectedRoommate] = useState('all');
+          const [selectedTaskType, setSelectedTaskType] = useState('all');
+          const [viewMode, setViewMode] = useState('calendar');
+
+          // Trạng thái kết nối Server
+          const [serverConnected, setServerConnected] = useState(false);
+          const [isConnecting, setIsConnecting] = useState(true);
+
+          // Trạng thái thông báo
+          const [notifSupported, setNotifSupported] = useState(false);
+          const [notifPermission, setNotifPermission] = useState('default');
+          const [registeringUser, setRegisteringUser] = useState('Ha'); // Tên thành viên muốn đăng ký thiết bị
+          const [activeSubscribers, setActiveSubscribers] = useState([]); // Danh sách tên đã đăng ký thành công
+          
+          const [notifTime, setNotifTime] = useState(() => {
+            const saved = localStorage.getItem('notifTime');
+            return saved || '20:00'; 
+          });
+
+          const [completedTasks, setCompletedTasks] = useState(() => {
+            const saved = localStorage.getItem('completedTasks');
+            return saved ? JSON.parse(saved) : {};
+          });
+
+          const [penaltiesByMonth, setPenaltiesByMonth] = useState(() => {
+            const saved = localStorage.getItem('penaltiesByMonth');
+            return saved ? JSON.parse(saved) : {};
+          });
+
+          const [modal, setModal] = useState({
+            isOpen: false,
+            title: '',
+            message: '',
+            isConfirm: false,
+            onConfirm: null
+          });
+
+          const showAlert = (title, message) => {
+            setModal({ isOpen: true, title, message, isConfirm: false, onConfirm: null });
+          };
+
+          const showConfirm = (title, message, onConfirmCallback) => {
+            setModal({
+              isOpen: true,
+              title,
+              message,
+              isConfirm: true,
+              onConfirm: () => {
+                onConfirmCallback();
+                setModal({ isOpen: false, title: '', message: '', isConfirm: false, onConfirm: null });
               }
-            })
-            .catch(err => {
-              console.warn("Render đang ngủ hoặc lỗi kết nối...");
-              setServerConnected(false);
-              setIsConnecting(false);
             });
-        };
+          };
 
-        fetchTasks();
-        const interval = setInterval(fetchTasks, 6000); // 6 giây đồng bộ một lần cho nhanh
-        return () => clearInterval(interval);
-      }, []);
-
-      useEffect(() => {
-        localStorage.setItem('penaltiesByMonth', JSON.stringify(penaltiesByMonth));
-      }, [penaltiesByMonth]);
-
-      useEffect(() => {
-        localStorage.setItem('notifTime', notifTime);
-      }, [notifTime]);
-
-      // Kiểm tra khả năng tương thích của trình duyệt
-      useEffect(() => {
-        if ('Notification' in window && 'serviceWorker' in navigator) {
-          setNotifSupported(true);
-          setNotifPermission(Notification.permission);
-        }
-      }, []);
-
-      // Phạt trong tháng hiện tại
-      const activePenalties = useMemo(() => {
-        const key = `${currentYear}-${currentMonth}`;
-        return penaltiesByMonth[key] || { Ha: 0, Quynh: 0, Thuy: 0 };
-      }, [penaltiesByMonth, currentYear, currentMonth]);
-
-      // Các thông số lịch tháng
-      const { daysInMonth, startDayOfWeek, offsetSlots } = useMemo(() => {
-        const totalDays = new Date(currentYear, currentMonth, 0).getDate();
-        const firstDay = new Date(currentYear, currentMonth - 1, 1).getDay();
-        const offset = (firstDay === 0) ? 6 : firstDay - 1;
-        return { daysInMonth: totalDays, startDayOfWeek: firstDay, offsetSlots: offset };
-      }, [currentYear, currentMonth]);
-
-      // Thuật toán chia lịch trực đều và tự động cắt giảm buổi dư cuối tháng
-      const scheduleData = useMemo(() => {
-        const rawOccurrences = {
-          QUET_NHA: [],
-          LAU_NHA: [],
-          DO_RAC: [],
-          DON_BEP: [],
-          BAN_CONG: [],
-          CHA_SAN_GUONG: [],
-          CO_WC: []
-        };
-
-        for (let day = 1; day <= daysInMonth; day++) {
-          const dayOfWeek = (new Date(currentYear, currentMonth - 1, day).getDay());
-
-          rawOccurrences.QUET_NHA.push(day);
-
-          if (day % 2 === 0) {
-            rawOccurrences.LAU_NHA.push(day);
-          }
-
-          if (day % 2 !== 0) {
-            rawOccurrences.DO_RAC.push(day);
-          }
-
-          if (dayOfWeek === 3 || dayOfWeek === 0) {
-            rawOccurrences.DON_BEP.push(day);
-          }
-
-          if (dayOfWeek === 2 || dayOfWeek === 5) {
-            rawOccurrences.BAN_CONG.push(day);
-          }
-
-          if (dayOfWeek === 1 || dayOfWeek === 4) {
-            rawOccurrences.CHA_SAN_GUONG.push(day);
-          }
-
-          if (dayOfWeek === 3 || dayOfWeek === 6) {
-            rawOccurrences.CO_WC.push(day);
-          }
-        }
-
-        const trimmedOccurrences = {};
-        const trimmedOffDays = {};
-
-        Object.entries(rawOccurrences).forEach(([taskType, days]) => {
-          const originalCount = days.length;
-          const targetCount = Math.floor(originalCount / 3) * 3;
-          trimmedOccurrences[taskType] = days.slice(0, targetCount);
-          trimmedOffDays[taskType] = days.slice(targetCount);
-        });
-
-        const schedule = Array.from({ length: daysInMonth }, (_, i) => ({
-          day: i + 1,
-          dayOfWeek: new Date(currentYear, currentMonth - 1, i + 1).getDay(),
-          tasks: [],
-          trimmedTasks: []
-        }));
-
-        const assignees = ['Ha', 'Quynh', 'Thuy'];
-        const taskQueues = {
-          QUET_NHA: [...assignees],
-          LAU_NHA: ['Quynh', 'Thuy', 'Ha'],
-          DO_RAC: ['Thuy', 'Ha', 'Quynh'],
-          DON_BEP: ['Ha', 'Quynh', 'Thuy'],
-          BAN_CONG: ['Quynh', 'Thuy', 'Ha'],
-          CHA_SAN_GUONG: ['Thuy', 'Ha', 'Quynh'],
-          CO_WC: ['Quynh', 'Ha', 'Thuy']
-        };
-
-        Object.entries(trimmedOccurrences).forEach(([taskType, days]) => {
-          const queue = taskQueues[taskType];
-          days.forEach((day, index) => {
-            const assignee = queue[index % 3];
-            schedule[day - 1].tasks.push({
-              type: taskType,
-              assignee
-            });
-          });
-        });
-
-        Object.entries(trimmedOffDays).forEach(([taskType, days]) => {
-          days.forEach(day => {
-            schedule[day - 1].trimmedTasks.push(taskType);
-          });
-        });
-
-        return schedule;
-      }, [currentYear, currentMonth, daysInMonth]);
-
-      // Thống kê ca trực
-      const taskStatistics = useMemo(() => {
-        const stats = {
-          Ha: { total: 0, QUET_NHA: 0, LAU_NHA: 0, DO_RAC: 0, DON_BEP: 0, BAN_CONG: 0, CHA_SAN_GUONG: 0, CO_WC: 0 },
-          Quynh: { total: 0, QUET_NHA: 0, LAU_NHA: 0, DO_RAC: 0, DON_BEP: 0, BAN_CONG: 0, CHA_SAN_GUONG: 0, CO_WC: 0 },
-          Thuy: { total: 0, QUET_NHA: 0, LAU_NHA: 0, DO_RAC: 0, DON_BEP: 0, BAN_CONG: 0, CHA_SAN_GUONG: 0, CO_WC: 0 },
-        };
-        scheduleData.forEach(d => {
-          d.tasks.forEach(t => {
-            stats[t.assignee].total += 1;
-            stats[t.assignee][t.type] += 1;
-          });
-        });
-        return stats;
-      }, [scheduleData]);
-
-      // Đổi trạng thái tích hoàn thành: Lưu ngay cục bộ và gửi đồng bộ đám mây ngầm
-      const toggleTaskComplete = (day, taskType) => {
-        const key = `${currentYear}-${currentMonth}-${day}-${taskType}`;
-        const nextState = !completedTasks[key];
-
-        // 1. Cập nhật UI và bộ nhớ cục bộ tức thì để chống mất dữ liệu khi F5
-        setCompletedTasks(prev => {
-          const updated = { ...prev, [key]: nextState };
-          localStorage.setItem('completedTasks', JSON.stringify(updated));
-          return updated;
-        });
-
-        // 2. Gửi đồng bộ lên cơ sở dữ liệu MongoDB Atlas
-        fetch(`${BACKEND_URL}/api/tasks/toggle`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ key, completed: nextState })
-        })
-          .then(res => res.json())
-          .then(() => setServerConnected(true))
-          .catch(err => {
-            console.warn("Lưu trữ cục bộ thành công! Sẽ tự động đồng bộ khi Server online.");
-            setServerConnected(false);
-          });
-      };
-
-      const isTaskCompleted = (day, taskType) => {
-        return !!completedTasks[`${currentYear}-${currentMonth}-${day}-${taskType}`];
-      };
-
-      const getDayName = (dayOfWeek) => {
-        const days = ['Chủ Nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
-        return days[dayOfWeek];
-      };
-
-      const updatePenalty = (person, amount) => {
-        const key = `${currentYear}-${currentMonth}`;
-        setPenaltiesByMonth(prev => {
-          const currentPenalties = prev[key] || { Ha: 0, Quynh: 0, Thuy: 0 };
-          return {
-            ...prev,
-            [key]: {
-              ...currentPenalties,
-              [person]: Math.max(0, currentPenalties[person] + amount)
+          const urlBase64ToUint8Array = (base64String) => {
+            try {
+              const padding = '='.repeat((4 - base64String.length % 4) % 4);
+              const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+              const rawData = window.atob(base64);
+              const outputArray = new Uint8Array(rawData.length);
+              for (let i = 0; i < rawData.length; ++i) {
+                outputArray[i] = rawData.charCodeAt(i);
+              }
+              return outputArray;
+            } catch (e) {
+              return new Uint8Array();
             }
           };
-        });
-      };
 
-      const calculateFine = (missedDays) => {
-        if (missedDays <= 1) return 0;
-        if (missedDays === 2) return 50000;
-        return 50000 + (missedDays - 2) * 100000;
-      };
+          useEffect(() => {
+            localStorage.setItem('completedTasks', JSON.stringify(completedTasks));
+          }, [completedTasks]);
 
-      // --- ĐĂNG KÝ WEB PUSH ĐỂ NHẬN THÔNG BÁO CHẠY NGẦM ---
-      const requestNotifPermission = async () => {
-        if (!notifSupported) {
-          showAlert("⚠️ Thiết bị chưa hỗ trợ", "Thiết bị hoặc trình duyệt này không hỗ trợ nhận thông báo chạy ngầm.");
-          return;
-        }
-
-        try {
-          const registration = await navigator.serviceWorker.register('/sw.js');
-          const permission = await Notification.requestPermission();
-          setNotifPermission(permission);
-
-          if (permission === 'granted') {
-            const subscribeOptions = {
-              userVisibleOnly: true,
-              applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
-            };
-
-            const subscription = await registration.pushManager.subscribe(subscribeOptions);
-
-            await fetch(`${BACKEND_URL}/api/subscribe`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(subscription)
-            });
-
-            showAlert("🎉 Thành công", "Đã kích hoạt chuông báo thành công! Điện thoại sẽ tự động nhận nhắc nhở trực nhật.");
-          }
-        } catch (err) {
-          console.error("Lỗi đăng ký Web Push:", err);
-          showAlert("❌ Không thể kết nối", "Vui lòng mở ứng dụng từ màn hình chính (iPhone) hoặc kết nối HTTPS an toàn để bật tính năng.");
-        }
-      };
-
-      // Gửi thông báo thử nghiệm trực tiếp từ Backend Render
-      const triggerTestNotification = () => {
-        if (!notifSupported || notifPermission !== 'granted') {
-          showAlert("⚠️ Quyền thông báo", "Bạn chưa cấp quyền nhận thông báo. Hãy nhấn nút 'Kích hoạt' trước nhé!");
-          return;
-        }
-        fetch(`${BACKEND_URL}/api/send-reminders`, {
-          method: 'POST'
-        }).then(() => showAlert("✉️ Đã gửi lệnh", "Đã ra lệnh cho máy chủ Render bắn thông báo. Chờ 1-2 giây để nhận nhé."))
-          .catch(err => showAlert("❌ Lỗi kết nối", "Máy chủ Render đang bận hoặc chưa thể phản hồi: " + err.message));
-      };
-
-      const resetMonthlyProgress = () => {
-        showConfirm(
-          "🔄 Đặt lại tiến trình",
-          `Bạn có chắc chắn muốn xóa toàn bộ lịch sử hoàn thành của Tháng ${currentMonth}/${currentYear} không?`,
-          () => {
-            const newCompleted = { ...completedTasks };
-            Object.keys(newCompleted).forEach(key => {
-              if (key.startsWith(`${currentYear}-${currentMonth}-`)) {
-                delete newCompleted[key];
-              }
-            });
-            setCompletedTasks(newCompleted);
-          }
-        );
-      };
-
-      const handleExportExcel = () => {
-        let csvContent = "\uFEFF";
-        csvContent += "Ngày,Thứ,Quét nhà,Lau nhà,Đổ rác,Dọn bếp,Ban công,Chà sàn & Lau gương,Cọ WC & Lavabo\n";
-
-        scheduleData.forEach(dayData => {
-          const dayName = getDayName(dayData.dayOfWeek);
-          const getWorker = (taskType) => {
-            const found = dayData.tasks.find(t => t.type === taskType);
-            return found ? ROOMMATES[found.assignee].name : "-";
+          // Lấy danh sách thiết bị đã đăng ký từ Server
+          const fetchSubscribers = () => {
+            fetch(`${BACKEND_URL}/api/active-subscribers`)
+              .then(res => res.json())
+              .then(data => {
+                if (Array.isArray(data)) setActiveSubscribers(data);
+              })
+              .catch(() => {});
           };
 
-          const row = [
-            dayData.day,
-            dayName,
-            getWorker('QUET_NHA'),
-            getWorker('LAU_NHA'),
-            getWorker('DO_RAC'),
-            getWorker('DON_BEP'),
-            getWorker('BAN_CONG'),
-            getWorker('CHA_SAN_GUONG'),
-            getWorker('CO_WC')
-          ];
+          useEffect(() => {
+            const fetchTasks = () => {
+              setIsConnecting(true);
+              fetch(`${BACKEND_URL}/api/tasks`)
+                .then(res => {
+                  if (!res.ok) throw new Error("Lỗi kết nối");
+                  return res.json();
+                })
+                .then(data => {
+                  setServerConnected(true);
+                  setIsConnecting(false);
+                  if (data && Object.keys(data).length > 0) {
+                    setCompletedTasks(prev => ({ ...prev, ...data }));
+                  }
+                })
+                .catch(() => {
+                  setServerConnected(false);
+                  setIsConnecting(false);
+                });
+            };
 
-          csvContent += row.map(val => `"${val}"`).join(',') + "\n";
-        });
+            fetchTasks();
+            fetchSubscribers();
+            const interval = setInterval(() => {
+              fetchTasks();
+              fetchSubscribers();
+            }, 8000); 
+            return () => clearInterval(interval);
+          }, []);
 
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.setAttribute("href", url);
-        link.setAttribute("download", `Lich_Truc_Nhat_Thang_${currentMonth}_${currentYear}.csv`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      };
+          useEffect(() => {
+            localStorage.setItem('penaltiesByMonth', JSON.stringify(penaltiesByMonth));
+          }, [penaltiesByMonth]);
 
-      return (
-        <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-6 pb-24 relative">
+          useEffect(() => {
+            localStorage.setItem('notifTime', notifTime);
+          }, [notifTime]);
 
-          {/* Custom Notification Modal */}
-          {modal.isOpen && (
-            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
-              <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-xl border border-slate-100 space-y-4 animate-in fade-in zoom-in-95 duration-200">
-                <h4 className="font-extrabold text-slate-900 text-lg">{modal.title}</h4>
-                <p className="text-slate-600 text-sm leading-relaxed">{modal.message}</p>
-                <div className="flex gap-3 pt-2 justify-end">
-                  {modal.isConfirm ? (
-                    <>
-                      <button
-                        onClick={() => setModal({ isOpen: false, title: '', message: '', isConfirm: false, onConfirm: null })}
-                        className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all"
-                      >
-                        Hủy
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (modal.onConfirm) modal.onConfirm();
-                          setModal({ isOpen: false, title: '', message: '', isConfirm: false, onConfirm: null });
-                        }}
-                        className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow-md transition-all"
-                      >
-                        Xác nhận
-                      </button>
-                    </>
+          useEffect(() => {
+            if ('Notification' in window && 'serviceWorker' in navigator) {
+              setNotifSupported(true);
+              setNotifPermission(Notification.permission);
+            }
+          }, []);
+
+          const activePenalties = useMemo(() => {
+            const key = `${currentYear}-${currentMonth}`;
+            return penaltiesByMonth[key] || { Ha: 0, Quynh: 0, Thuy: 0 };
+          }, [penaltiesByMonth, currentYear, currentMonth]);
+
+          const { daysInMonth, offsetSlots } = useMemo(() => {
+            const totalDays = new Date(currentYear, currentMonth, 0).getDate();
+            const firstDay = new Date(currentYear, currentMonth - 1, 1).getDay();
+            const offset = (firstDay === 0) ? 6 : firstDay - 1;
+            return { daysInMonth: totalDays, offsetSlots: offset };
+          }, [currentYear, currentMonth]);
+
+          const scheduleData = useMemo(() => {
+            const rawOccurrences = {
+              QUET_NHA: [], LAU_NHA: [], DO_RAC: [], DON_BEP: [], BAN_CONG: [], CHA_SAN_GUONG: [], CO_WC: []
+            };
+
+            for (let day = 1; day <= daysInMonth; day++) {
+              const dayOfWeek = (new Date(currentYear, currentMonth - 1, day).getDay());
+              rawOccurrences.QUET_NHA.push(day);
+              if (day % 2 === 0) rawOccurrences.LAU_NHA.push(day);
+              if (day % 2 !== 0) rawOccurrences.DO_RAC.push(day);
+              if (dayOfWeek === 3 || dayOfWeek === 0) rawOccurrences.DON_BEP.push(day);
+              if (dayOfWeek === 2 || dayOfWeek === 5) rawOccurrences.BAN_CONG.push(day);
+              if (dayOfWeek === 1 || dayOfWeek === 4) rawOccurrences.CHA_SAN_GUONG.push(day);
+              if (dayOfWeek === 3 || dayOfWeek === 6) rawOccurrences.CO_WC.push(day);
+            }
+
+            const trimmedOccurrences = {};
+            const trimmedOffDays = {};
+
+            Object.entries(rawOccurrences).forEach(([taskType, days]) => {
+              const originalCount = days.length;
+              const targetCount = Math.floor(originalCount / 3) * 3;
+              trimmedOccurrences[taskType] = days.slice(0, targetCount);
+              trimmedOffDays[taskType] = days.slice(targetCount);
+            });
+
+            const schedule = Array.from({ length: daysInMonth }, (_, i) => ({
+              day: i + 1,
+              dayOfWeek: new Date(currentYear, currentMonth - 1, i + 1).getDay(),
+              tasks: [],
+              trimmedTasks: []
+            }));
+
+            const assignees = ['Ha', 'Quynh', 'Thuy'];
+            const taskQueues = {
+              QUET_NHA: [...assignees],
+              LAU_NHA: ['Quynh', 'Thuy', 'Ha'],
+              DO_RAC: ['Thuy', 'Ha', 'Quynh'],
+              DON_BEP: ['Ha', 'Quynh', 'Thuy'],
+              BAN_CONG: ['Quynh', 'Thuy', 'Ha'],
+              CHA_SAN_GUONG: ['Thuy', 'Ha', 'Quynh'],
+              CO_WC: ['Quynh', 'Ha', 'Thuy']
+            };
+
+            Object.entries(trimmedOccurrences).forEach(([taskType, days]) => {
+              const queue = taskQueues[taskType];
+              days.forEach((day, index) => {
+                const assignee = queue[index % 3];
+                schedule[day - 1].tasks.push({ type: taskType, assignee });
+              });
+            });
+
+            Object.entries(trimmedOffDays).forEach(([taskType, days]) => {
+              days.forEach(day => {
+                schedule[day - 1].trimmedTasks.push(taskType);
+              });
+            });
+
+            return schedule;
+          }, [currentYear, currentMonth, daysInMonth]);
+
+          const taskStatistics = useMemo(() => {
+            const stats = {
+              Ha: { total: 0, QUET_NHA: 0, LAU_NHA: 0, DO_RAC: 0, DON_BEP: 0, BAN_CONG: 0, CHA_SAN_GUONG: 0, CO_WC: 0 },
+              Quynh: { total: 0, QUET_NHA: 0, LAU_NHA: 0, DO_RAC: 0, DON_BEP: 0, BAN_CONG: 0, CHA_SAN_GUONG: 0, CO_WC: 0 },
+              Thuy: { total: 0, QUET_NHA: 0, LAU_NHA: 0, DO_RAC: 0, DON_BEP: 0, BAN_CONG: 0, CHA_SAN_GUONG: 0, CO_WC: 0 },
+            };
+            scheduleData.forEach(d => {
+              d.tasks.forEach(t => {
+                stats[t.assignee].total += 1;
+                stats[t.assignee][t.type] += 1;
+              });
+            });
+            return stats;
+          }, [scheduleData]);
+
+          const toggleTaskComplete = (day, taskType) => {
+            const key = `${currentYear}-${currentMonth}-${day}-${taskType}`;
+            const nextState = !completedTasks[key];
+
+            setCompletedTasks(prev => ({ ...prev, [key]: nextState }));
+
+            fetch(`${BACKEND_URL}/api/tasks/toggle`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ key, completed: nextState })
+            })
+            .then(res => res.json())
+            .then(() => setServerConnected(true))
+            .catch(() => setServerConnected(false));
+          };
+
+          const isTaskCompleted = (day, taskType) => {
+            return !!completedTasks[`${currentYear}-${currentMonth}-${day}-${taskType}`];
+          };
+
+          const getDayName = (dayOfWeek) => {
+            const days = ['Chủ Nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
+            return days[dayOfWeek];
+          };
+
+          const updatePenalty = (person, amount) => {
+            const key = `${currentYear}-${currentMonth}`;
+            setPenaltiesByMonth(prev => {
+              const currentPenalties = prev[key] || { Ha: 0, Quynh: 0, Thuy: 0 };
+              return {
+                ...prev,
+                [key]: {
+                  ...currentPenalties,
+                  [person]: Math.max(0, currentPenalties[person] + amount)
+                }
+              };
+            });
+          };
+
+          const calculateFine = (missedDays) => {
+            if (missedDays <= 1) return 0;
+            if (missedDays === 2) return 50000;
+            return 50000 + (missedDays - 2) * 100000;
+          };
+
+          // Đăng ký Web Push gửi kèm tên thành viên
+          const requestNotifPermission = async () => {
+            if (!notifSupported) {
+              showAlert("⚠️ Thiết bị chưa hỗ trợ", "Thiết bị hoặc trình duyệt này không hỗ trợ nhận thông báo chạy ngầm.");
+              return;
+            }
+
+            try {
+              const registration = await navigator.serviceWorker.register('/sw.js');
+              const permission = await Notification.requestPermission();
+              setNotifPermission(permission);
+
+              if (permission === 'granted') {
+                const subscribeOptions = {
+                  userVisibleOnly: true,
+                  applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+                };
+
+                const subscription = await registration.pushManager.subscribe(subscribeOptions);
+
+                // Gửi thông tin đăng ký kèm theo tên viết tắt của roommate đăng ký
+                await fetch(`${BACKEND_URL}/api/subscribe`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ 
+                    subscription: subscription.toJSON(), // Fix lỗi serialization trên Safari/iOS
+                    roommate: registeringUser 
+                  })
+                });
+
+                showAlert("🎉 Thành công", `Đã kích hoạt thiết bị nhận thông báo cho thành viên: ${ROOMMATES[registeringUser].name}!`);
+                fetchSubscribers();
+              }
+            } catch (err) {
+              console.error("Lỗi đăng ký Web Push:", err);
+              showAlert("❌ Không thể kết nối", "Vui lòng mở ứng dụng từ màn hình chính (iPhone) hoặc kết nối HTTPS an toàn để bật tính năng.");
+            }
+          };
+
+          const triggerTestNotification = () => {
+            if (!notifSupported || notifPermission !== 'granted') {
+              showAlert("⚠️ Quyền thông báo", "Bạn chưa cấp quyền nhận thông báo. Hãy nhấn nút 'Kích hoạt' trước nhé!");
+              return;
+            }
+            fetch(`${BACKEND_URL}/api/send-reminders`, { method: 'POST' })
+              .then(() => showAlert("✉️ Đã gửi lệnh", "Đã ra lệnh cho máy chủ bắn thông báo. Chờ 1-2 giây để nhận nhé."))
+              .catch(err => showAlert("❌ Lỗi kết nối", "Lỗi kết nối máy chủ: " + err.message));
+          };
+
+          const resetMonthlyProgress = () => {
+             showConfirm(
+               "🔄 Đặt lại tiến trình", 
+               `Bạn có chắc chắn muốn xóa toàn bộ lịch sử hoàn thành của Tháng ${currentMonth}/${currentYear} không?`, 
+               () => {
+                 const newCompleted = { ...completedTasks };
+                 Object.keys(newCompleted).forEach(key => {
+                     if (key.startsWith(`${currentYear}-${currentMonth}-`)) {
+                         delete newCompleted[key];
+                     }
+                 });
+                 setCompletedTasks(newCompleted);
+               }
+             );
+          };
+
+          const handleMonthChange = (direction) => {
+            if (direction === 'prev') {
+              if (currentMonth === 1) {
+                setCurrentMonth(12);
+                setCurrentYear(prev => prev - 1);
+              } else {
+                setCurrentMonth(prev => prev - 1);
+              }
+            } else {
+              if (currentMonth === 12) {
+                setCurrentMonth(1);
+                setCurrentYear(prev => prev + 1);
+              } else {
+                setCurrentMonth(prev => prev + 1);
+              }
+            }
+            setCurrentDayDetail(1);
+          };
+
+          const handleExportExcel = () => {
+            let csvContent = "\uFEFF"; 
+            csvContent += "Ngày,Thứ,Quét nhà,Lau nhà,Đổ rác,Dọn bếp,Ban công,Chà sàn & Lau gương,Cọ WC & Lavabo\n";
+            
+            scheduleData.forEach(dayData => {
+              const dayName = getDayName(dayData.dayOfWeek);
+              const getWorker = (taskType) => {
+                const found = dayData.tasks.find(t => t.type === taskType);
+                return found ? ROOMMATES[found.assignee].name : "-";
+              };
+
+              const row = [
+                dayData.day,
+                dayName,
+                getWorker('QUET_NHA'),
+                getWorker('LAU_NHA'),
+                getWorker('DO_RAC'),
+                getWorker('DON_BEP'),
+                getWorker('BAN_CONG'),
+                getWorker('CHA_SAN_GUONG'),
+                getWorker('CO_WC')
+              ];
+
+              csvContent += row.map(val => `"${val}"`).join(',') + "\n";
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.setAttribute("href", url);
+            link.setAttribute("download", `Lich_Truc_Nhat_Thang_${currentMonth}_${currentYear}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+          };
+
+          return (
+            <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-6 pb-24 relative">
+              
+              {/* Custom Notification Modal */}
+              {modal.isOpen && (
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                  <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-xl border border-slate-100 space-y-4">
+                    <h4 className="font-extrabold text-slate-900 text-lg">{modal.title}</h4>
+                    <p className="text-slate-600 text-sm leading-relaxed">{modal.message}</p>
+                    <div className="flex gap-3 pt-2 justify-end">
+                      {modal.isConfirm ? (
+                        <>
+                          <button 
+                            onClick={() => setModal({ isOpen: false, title: '', message: '', isConfirm: false, onConfirm: null })}
+                            className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all"
+                          >
+                            Hủy
+                          </button>
+                          <button 
+                            onClick={() => {
+                              if (modal.onConfirm) modal.onConfirm();
+                              setModal({ isOpen: false, title: '', message: '', isConfirm: false, onConfirm: null });
+                            }}
+                            className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow-md transition-all"
+                          >
+                            Xác nhận
+                          </button>
+                        </>
+                      ) : (
+                        <button 
+                          onClick={() => setModal({ isOpen: false, title: '', message: '', isConfirm: false, onConfirm: null })}
+                          className="px-5 py-2 bg-slate-950 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-md transition-all"
+                        >
+                          Đã hiểu
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Trạng thái kết nối Server */}
+              <div className="flex items-center justify-between px-4 py-2.5 bg-white rounded-2xl shadow-sm border border-slate-100 text-xs font-semibold">
+                <span className="text-slate-500 flex items-center gap-1.5">
+                  <span className="relative flex h-2 w-2">
+                    <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${serverConnected ? 'bg-emerald-400' : 'bg-amber-400'}`}></span>
+                    <span className={`relative inline-flex rounded-full h-2 w-2 ${serverConnected ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
+                  </span>
+                  Đồng bộ đám mây:
+                </span>
+                <div className="flex items-center gap-2">
+                  {isConnecting ? (
+                    <span className="text-amber-500 animate-pulse">⏳ Đang tải...</span>
+                  ) : serverConnected ? (
+                    <span className="text-emerald-600 flex items-center gap-1">🟢 Trực tuyến (MongoDB Atlas)</span>
                   ) : (
-                    <button
-                      onClick={() => setModal({ isOpen: false, title: '', message: '', isConfirm: false, onConfirm: null })}
-                      className="px-5 py-2 bg-slate-950 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-md transition-all"
-                    >
-                      Đã hiểu
-                    </button>
+                    <span className="text-rose-500">
+                      🟡 Chế độ ngoại tuyến (Server đang ngủ)
+                    </span>
                   )}
                 </div>
               </div>
-            </div>
-          )}
 
-          {/* Trạng thái kết nối Server */}
-          <div className="flex items-center justify-between px-4 py-2.5 bg-white rounded-2xl shadow-sm border border-slate-100 text-xs font-semibold">
-            <span className="text-slate-500 flex items-center gap-1.5">
-              <span className="relative flex h-2 w-2">
-                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${serverConnected ? 'bg-emerald-400' : 'bg-amber-400'}`}></span>
-                <span className={`relative inline-flex rounded-full h-2 w-2 ${serverConnected ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
-              </span>
-              Đồng bộ đám mây:
-            </span>
-            <div className="flex items-center gap-2">
-              {isConnecting ? (
-                <span className="text-amber-500 animate-pulse">⏳ Đang tải...</span>
-              ) : serverConnected ? (
-                <span className="text-emerald-600 flex items-center gap-1">🟢 Trực tuyến (MongoDB Atlas)</span>
-              ) : (
-                <span className="text-rose-500" title="Nếu Server Render đang ngủ đông, dữ liệu mới sẽ được tải lên khi bạn thực hiện tích chọn.">
-                  🟡 Chế độ dự phòng (Đang chờ đánh thức Server)
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* Main Header with Month Changer */}
-          <header className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-            <div>
-              <div className="flex items-center gap-2">
-                <div className="flex items-center bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full font-bold text-xs gap-3">
-                  <button onClick={() => handleMonthChange('prev')} className="hover:text-indigo-900 transition-colors">◀</button>
-                  <span>THÁNG {currentMonth} / {currentYear}</span>
-                  <button onClick={() => handleMonthChange('next')} className="hover:text-indigo-900 transition-colors">▶</button>
-                </div>
-                <span className="flex items-center gap-1 text-xs text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full font-medium">✨ Công bằng 100%</span>
-              </div>
-              <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 mt-2">Lịch Trực Nhật "3 Nàng Thơ"</h1>
-              <p className="text-slate-500 mt-1 text-sm">Hệ thống phân lịch thông minh - Tự động cân bằng mọi tháng!</p>
-            </div>
-
-            {/* Action Buttons & Roommates */}
-            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center w-full md:w-auto">
-              <button
-                onClick={handleExportExcel}
-                className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-extrabold text-xs rounded-2xl shadow-md shadow-emerald-500/10 hover:scale-[1.02] transition-all w-full sm:w-auto justify-center"
-              >
-                📥 XUẤT FILE EXCEL
-              </button>
-
-              <div className="flex gap-2.5 flex-wrap w-full sm:w-auto">
-                {Object.entries(ROOMMATES).map(([key, value]) => (
-                  <div key={key} className={`flex items-center gap-2 px-3 py-2 rounded-2xl border ${value.bg} ${value.border} shadow-sm`}>
-                    <span className="text-lg">{value.avatar}</span>
-                    <div>
-                      <p className={`font-bold text-xs ${value.text}`}>{value.name}</p>
-                      <p className="text-[10px] text-slate-500 font-medium">{taskStatistics[key].total} ca / tháng</p>
+              {/* Main Header */}
+              <header className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full font-bold text-xs gap-3">
+                      <button onClick={() => handleMonthChange('prev')} className="hover:text-indigo-900 transition-colors">◀</button>
+                      <span>THÁNG {currentMonth} / {currentYear}</span>
+                      <button onClick={() => handleMonthChange('next')} className="hover:text-indigo-900 transition-colors">▶</button>
                     </div>
+                    <span className="flex items-center gap-1 text-xs text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full font-medium">✨ Công bằng 100%</span>
                   </div>
-                ))}
-              </div>
-            </div>
-          </header>
+                  <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 mt-2">Lịch Trực Nhật "3 Nàng Thơ"</h1>
+                  <p className="text-slate-500 mt-1 text-sm">Hệ thống phân lịch thông minh - Tự động cân bằng mọi tháng!</p>
+                </div>
+                
+                <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center w-full md:w-auto">
+                  <button 
+                    onClick={handleExportExcel}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-extrabold text-xs rounded-2xl shadow-md shadow-emerald-500/10 hover:scale-[1.02] transition-all w-full sm:w-auto justify-center"
+                  >
+                    📥 XUẤT FILE EXCEL
+                  </button>
 
-          {/* Layout Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-            {/* Center & Left Area */}
-            <div className="lg:col-span-2 space-y-6">
-
-              {/* Controls & Filtering */}
-              <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 space-y-4">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                  <h2 className="font-bold text-base text-slate-900 flex items-center gap-2">🔍 Bộ Lọc Nhanh</h2>
-                  <div className="flex bg-slate-100 p-1 rounded-xl w-full sm:w-auto">
-                    <button onClick={() => setViewMode('calendar')} className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${viewMode === 'calendar' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}>Lịch Tháng</button>
-                    <button onClick={() => setViewMode('list')} className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${viewMode === 'list' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}>Danh Sách</button>
+                  <div className="flex gap-2.5 flex-wrap w-full sm:w-auto">
+                    {Object.entries(ROOMMATES).map(([key, value]) => (
+                      <div key={key} className={`flex items-center gap-2 px-3 py-2 rounded-2xl border ${value.bg} ${value.border} shadow-sm`}>
+                        <span className="text-lg">{value.avatar}</span>
+                        <div>
+                          <p className={`font-bold text-xs ${value.text}`}>{value.name}</p>
+                          <p className="text-[10px] text-slate-500 font-medium">{taskStatistics[key].total} ca / tháng</p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
+              </header>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <span className="block text-[10px] font-bold text-slate-400 mb-2 uppercase">Thành viên trực</span>
-                    <div className="flex flex-wrap gap-1.5">
-                      <button onClick={() => setSelectedRoommate('all')} className={`px-2.5 py-1.5 rounded-xl text-xs font-semibold border transition-all ${selectedRoommate === 'all' ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200'}`}>Tất cả</button>
-                      {Object.entries(ROOMMATES).map(([key, value]) => (
-                        <button key={key} onClick={() => setSelectedRoommate(key)} className={`px-2.5 py-1.5 rounded-xl text-xs font-semibold border transition-all ${selectedRoommate === key ? `${value.badge} border-current` : 'bg-white text-slate-600 border-slate-200'}`}>{value.avatar} {value.name}</button>
-                      ))}
+              {/* Layout Grid */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                <div className="lg:col-span-2 space-y-6">
+                  
+                  {/* Controls & Filtering */}
+                  <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 space-y-4">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                      <h2 className="font-bold text-base text-slate-900 flex items-center gap-2">🔍 Bộ Lọc Nhanh</h2>
+                      <div className="flex bg-slate-100 p-1 rounded-xl w-full sm:w-auto">
+                        <button onClick={() => setViewMode('calendar')} className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${viewMode === 'calendar' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}>Lịch Tháng</button>
+                        <button onClick={() => setViewMode('list')} className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${viewMode === 'list' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}>Danh Sách</button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <span className="block text-[10px] font-bold text-slate-400 mb-2 uppercase">Thành viên trực</span>
+                        <div className="flex flex-wrap gap-1.5">
+                          <button onClick={() => setSelectedRoommate('all')} className={`px-2.5 py-1.5 rounded-xl text-xs font-semibold border transition-all ${selectedRoommate === 'all' ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200'}`}>Tất cả</button>
+                          {Object.entries(ROOMMATES).map(([key, value]) => (
+                            <button key={key} onClick={() => setSelectedRoommate(key)} className={`px-2.5 py-1.5 rounded-xl text-xs font-semibold border transition-all ${selectedRoommate === key ? `${value.badge} border-current` : 'bg-white text-slate-600 border-slate-200'}`}>{value.avatar} {value.name}</button>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <span className="block text-[10px] font-bold text-slate-400 mb-2 uppercase">Công việc</span>
+                        <select value={selectedTaskType} onChange={(e) => setSelectedTaskType(e.target.value)} className="w-full text-xs font-semibold bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-3 py-2 outline-none">
+                          <option value="all">🧹 Tất cả công việc</option>
+                          {Object.entries(TASKS).map(([key, value]) => (
+                            <option key={key} value={key}>{value.name}</option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
                   </div>
-                  <div>
-                    <span className="block text-[10px] font-bold text-slate-400 mb-2 uppercase">Công việc</span>
-                    <select value={selectedTaskType} onChange={(e) => setSelectedTaskType(e.target.value)} className="w-full text-xs font-semibold bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-3 py-2 outline-none">
-                      <option value="all">🧹 Tất cả công việc</option>
-                      {Object.entries(TASKS).map(([key, value]) => (
-                        <option key={key} value={key}>{value.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </div>
 
-              {/* Main Calendar View */}
-              {viewMode === 'calendar' ? (
-                <div className="bg-white rounded-3xl p-4 md:p-6 shadow-sm border border-slate-100 overflow-x-auto">
-                  <div className="min-w-[600px]">
-                    <div className="grid grid-cols-7 gap-2 mb-2 text-center">
-                      {['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].map((d, idx) => (
-                        <div key={idx} className="text-xs font-bold text-slate-400 py-1 uppercase">{d}</div>
-                      ))}
+                  {/* Main Calendar View */}
+                  {viewMode === 'calendar' ? (
+                    <div className="bg-white rounded-3xl p-4 md:p-6 shadow-sm border border-slate-100 overflow-x-auto">
+                      <div className="min-w-[600px]">
+                        <div className="grid grid-cols-7 gap-2 mb-2 text-center">
+                          {['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].map((d, idx) => (
+                            <div key={idx} className="text-xs font-bold text-slate-400 py-1 uppercase">{d}</div>
+                          ))}
+                        </div>
+                        <div className="grid grid-cols-7 gap-2">
+                          {Array.from({ length: offsetSlots }).map((_, idx) => (
+                            <div key={`empty-${idx}`} className="bg-slate-50/50 rounded-2xl min-h-[90px] border border-dashed border-slate-100"></div>
+                          ))}
+                          {scheduleData.map((dayData) => {
+                            const filteredTasks = dayData.tasks.filter(t => {
+                              const matchRoommate = selectedRoommate === 'all' || t.assignee === selectedRoommate;
+                              const matchTask = selectedTaskType === 'all' || t.type === selectedTaskType;
+                              return matchRoommate && matchTask;
+                            });
+                            const isCurrentSelected = currentDayDetail === dayData.day;
+                            const hasTrimmed = dayData.trimmedTasks.length > 0;
+
+                            return (
+                              <button key={dayData.day} onClick={() => setCurrentDayDetail(dayData.day)} className={`relative flex flex-col justify-between p-2 rounded-2xl min-h-[105px] border transition-all text-left ${isCurrentSelected ? 'bg-indigo-50/50 border-indigo-500 ring-2 ring-indigo-500/10' : 'bg-white border-slate-100 hover:border-slate-200'} ${hasTrimmed ? 'bg-slate-50/50' : ''}`}>
+                                <div className="flex justify-between items-center w-full">
+                                  <span className={`text-[10px] font-black px-2 py-0.5 rounded-md ${isCurrentSelected ? 'bg-indigo-600 text-white' : 'text-slate-400'}`}>{dayData.day}</span>
+                                  {hasTrimmed && <span className="text-[9px]" title="Có ca cắt giảm để chia đều">⚠️</span>}
+                                </div>
+                                <div className="space-y-1 w-full mt-2">
+                                  {filteredTasks.map((task, tIdx) => {
+                                    const rm = ROOMMATES[task.assignee];
+                                    const meta = TASKS[task.type];
+                                    const isDone = isTaskCompleted(dayData.day, task.type);
+                                    return (
+                                      <div key={tIdx} className={`text-[8px] px-1.5 py-0.5 rounded-md border flex items-center justify-between font-bold truncate ${isDone ? 'bg-slate-100 text-slate-300 border-slate-200 line-through' : `${rm.bg} ${rm.text} ${rm.border}`}`}>
+                                        <span className="truncate">{meta.name}</span>
+                                        <span className="text-[9px] shrink-0">{rm.avatar}</span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
                     </div>
-                    <div className="grid grid-cols-7 gap-2">
-                      {Array.from({ length: offsetSlots }).map((_, idx) => (
-                        <div key={`empty-${idx}`} className="bg-slate-50/50 rounded-2xl min-h-[90px] border border-dashed border-slate-100"></div>
-                      ))}
+                  ) : (
+                    /* List view */
+                    <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 space-y-4 max-h-[500px] overflow-y-auto custom-scrollbar">
                       {scheduleData.map((dayData) => {
                         const filteredTasks = dayData.tasks.filter(t => {
                           const matchRoommate = selectedRoommate === 'all' || t.assignee === selectedRoommate;
                           const matchTask = selectedTaskType === 'all' || t.type === selectedTaskType;
                           return matchRoommate && matchTask;
                         });
-                        const isCurrentSelected = currentDayDetail === dayData.day;
-                        const hasTrimmed = dayData.trimmedTasks.length > 0;
-
+                        if (filteredTasks.length === 0) return null;
                         return (
-                          <button key={dayData.day} onClick={() => setCurrentDayDetail(dayData.day)} className={`relative flex flex-col justify-between p-2 rounded-2xl min-h-[105px] border transition-all text-left ${isCurrentSelected ? 'bg-indigo-50/50 border-indigo-500 ring-2 ring-indigo-500/10' : 'bg-white border-slate-100 hover:border-slate-200'} ${hasTrimmed ? 'bg-slate-50/50' : ''}`}>
-                            <div className="flex justify-between items-center w-full">
-                              <span className={`text-[10px] font-black px-2 py-0.5 rounded-md ${isCurrentSelected ? 'bg-indigo-600 text-white' : 'text-slate-400'}`}>{dayData.day}</span>
-                              {hasTrimmed && <span className="text-[9px]" title="Có ca cắt giảm để chia đều">⚠️</span>}
+                          <div key={dayData.day} className="flex gap-4 p-4 rounded-2xl border border-slate-100 bg-slate-50/30">
+                            <div className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-center min-w-[65px] shadow-sm shrink-0">
+                              <p className="text-[10px] text-slate-400 font-black uppercase">{getDayName(dayData.dayOfWeek)}</p>
+                              <p className="text-lg font-black text-slate-800">{dayData.day}</p>
                             </div>
-                            <div className="space-y-1 w-full mt-2">
+                            <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
                               {filteredTasks.map((task, tIdx) => {
                                 const rm = ROOMMATES[task.assignee];
                                 const meta = TASKS[task.type];
                                 const isDone = isTaskCompleted(dayData.day, task.type);
                                 return (
-                                  <div key={tIdx} className={`text-[8px] px-1.5 py-0.5 rounded-md border flex items-center justify-between font-bold truncate ${isDone ? 'bg-slate-100 text-slate-300 border-slate-200 line-through' : `${rm.bg} ${rm.text} ${rm.border}`}`}>
-                                    <span className="truncate">{meta.name}</span>
-                                    <span className="text-[9px] shrink-0">{rm.avatar}</span>
+                                  <div key={tIdx} onClick={() => toggleTaskComplete(dayData.day, task.type)} className={`flex items-center justify-between p-2.5 rounded-xl border cursor-pointer select-none transition-all ${isDone ? 'bg-slate-100 border-slate-200 opacity-60 text-slate-400 line-through' : `${rm.bg} ${rm.border} hover:shadow-sm text-slate-700`}`}>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-xs font-bold">{meta.name}</span>
+                                    </div>
+                                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${rm.badge}`}>{rm.avatar} {rm.name}</span>
                                   </div>
                                 );
                               })}
                             </div>
-                          </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Proof of Equality Chart */}
+                  <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+                    <h3 className="font-extrabold text-slate-900 text-base mb-1 flex items-center gap-2">🏆 Bảng Chứng Minh Công Bằng</h3>
+                    <p className="text-slate-400 text-xs mb-4">Mọi công việc đã được tự động cắt giảm buổi dư thừa cuối tháng để đảm bảo công bằng 100%.</p>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {Object.entries(ROOMMATES).map(([key, rm]) => {
+                        const stats = taskStatistics[key];
+                        return (
+                          <div key={key} className={`border ${rm.border} rounded-2xl p-4 bg-gradient-to-b from-white to-slate-50`}>
+                            <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-100">
+                              <span className="text-xl">{rm.avatar}</span>
+                              <span className="font-bold text-sm text-slate-800">{rm.name}</span>
+                              <span className={`text-[10px] px-2.5 py-1 rounded-xl font-black ${rm.badge}`}>{stats.total} Ca Trực</span>
+                            </div>
+                            <div className="space-y-1.5 text-[11px] text-slate-600">
+                              <div className="flex justify-between"><span>🧹 Quét nhà:</span><span className="font-bold">{stats.QUET_NHA} buổi</span></div>
+                              <div className="flex justify-between"><span>💧 Lau nhà:</span><span className="font-bold">{stats.LAU_NHA} buổi</span></div>
+                              <div className="flex justify-between"><span>🗑️ Đổ rác:</span><span className="font-bold">{stats.DO_RAC} buổi</span></div>
+                              <div className="flex justify-between"><span>☕ Dọn bếp:</span><span className="font-bold">{stats.DON_BEP} buổi</span></div>
+                              <div className="flex justify-between"><span>🌿 Ban công:</span><span className="font-bold">{stats.BAN_CONG} buổi</span></div>
+                              <div className="flex justify-between"><span>✨ Chà sàn:</span><span className="font-bold">{stats.CHA_SAN_GUONG} buổi</span></div>
+                              <div className="flex justify-between"><span>🚽 Cọ WC:</span><span className="font-bold">{stats.CO_WC} buổi</span></div>
+                            </div>
+                          </div>
                         );
                       })}
                     </div>
                   </div>
+
                 </div>
-              ) : (
-                /* List view */
-                <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 space-y-4 max-h-[500px] overflow-y-auto custom-scrollbar">
-                  {scheduleData.map((dayData) => {
-                    const filteredTasks = dayData.tasks.filter(t => {
-                      const matchRoommate = selectedRoommate === 'all' || t.assignee === selectedRoommate;
-                      const matchTask = selectedTaskType === 'all' || t.type === selectedTaskType;
-                      return matchRoommate && matchTask;
-                    });
-                    if (filteredTasks.length === 0) return null;
-                    return (
-                      <div key={dayData.day} className="flex gap-4 p-4 rounded-2xl border border-slate-100 bg-slate-50/30">
-                        <div className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-center min-w-[65px] shadow-sm shrink-0">
-                          <p className="text-[10px] text-slate-400 font-black uppercase">{getDayName(dayData.dayOfWeek)}</p>
-                          <p className="text-lg font-black text-slate-800">{dayData.day}</p>
+
+                {/* Right Area: Day Detail / Penalties / Rules */}
+                <div className="space-y-6">
+                  
+                  {/* Selected Day Details Card */}
+                  <div className="bg-indigo-950 text-white rounded-3xl p-6 shadow-lg relative overflow-hidden">
+                    <div className="absolute -right-12 -top-12 w-40 h-40 bg-indigo-800 rounded-full blur-2xl opacity-40"></div>
+                    <div className="relative space-y-4">
+                      <span className="px-3 py-1 bg-white/10 text-white text-[10px] font-bold rounded-full uppercase tracking-wider">Chi Tiết Trực Nhật</span>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="text-xl font-black">{getDayName(scheduleData[currentDayDetail - 1].dayOfWeek)}</h3>
+                          <p className="text-indigo-200 text-sm">Ngày {currentDayDetail} Tháng {currentMonth}</p>
                         </div>
-                        <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                          {filteredTasks.map((task, tIdx) => {
-                            const rm = ROOMMATES[task.assignee];
-                            const meta = TASKS[task.type];
-                            const isDone = isTaskCompleted(dayData.day, task.type);
-                            return (
-                              <div key={tIdx} onClick={() => toggleTaskComplete(dayData.day, task.type)} className={`flex items-center justify-between p-2.5 rounded-xl border cursor-pointer select-none transition-all ${isDone ? 'bg-slate-100 border-slate-200 opacity-60 text-slate-400 line-through' : `${rm.bg} ${rm.border} hover:shadow-sm text-slate-700`}`}>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-xs font-bold">{meta.name}</span>
+                        <div className="flex gap-1">
+                          <button disabled={currentDayDetail === 1} onClick={() => setCurrentDayDetail(prev => Math.max(1, prev - 1))} className="p-2 bg-white/10 hover:bg-white/20 disabled:opacity-30 rounded-xl">◀</button>
+                          <button disabled={currentDayDetail === daysInMonth} onClick={() => setCurrentDayDetail(prev => Math.min(daysInMonth, prev + 1))} className="p-2 bg-white/10 hover:bg-white/20 disabled:opacity-30 rounded-xl">▶</button>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        {scheduleData[currentDayDetail - 1].tasks.map((task, idx) => {
+                          const rm = ROOMMATES[task.assignee];
+                          const meta = TASKS[task.type];
+                          const isDone = isTaskCompleted(currentDayDetail, task.type);
+                          return (
+                            <div key={idx} onClick={() => toggleTaskComplete(currentDayDetail, task.type)} className={`flex items-center justify-between p-3 rounded-2xl cursor-pointer transition-all ${isDone ? 'bg-emerald-950/40 border border-emerald-500/30 text-emerald-300' : 'bg-white/5 border border-white/10 hover:bg-white/10'}`}>
+                              <div className="flex items-center gap-3">
+                                <div>
+                                  <p className={`text-xs font-bold ${isDone ? 'line-through text-emerald-400' : ''}`}>{meta.name}</p>
+                                  <p className="text-[10px] text-indigo-300">Hạn chót: 23:30</p>
                                 </div>
-                                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${rm.badge}`}>{rm.avatar} {rm.name}</span>
                               </div>
-                            );
-                          })}
-                        </div>
+                              <div className="flex items-center gap-2">
+                                <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold ${rm.badge}`}>{rm.name}</span>
+                                {isDone ? <span className="text-xs">✅</span> : <span className="text-xs">⬜</span>}
+                              </div>
+                            </div>
+                          );
+                        })}
+
+                        {scheduleData[currentDayDetail - 1].tasks.length === 0 && (
+                          <p className="text-indigo-200 text-xs italic">Không có nhiệm vụ nào hôm nay! 🎉</p>
+                        )}
                       </div>
-                    );
-                  })}
-                </div>
-              )}
 
-              {/* Equality Statistics */}
-              <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-                <h3 className="font-extrabold text-slate-900 text-base mb-1 flex items-center gap-2">🏆 Bảng Chứng Minh Công Bằng</h3>
-                <p className="text-slate-400 text-xs mb-4">Mọi công việc đã được tự động cắt giảm buổi dư thừa cuối tháng để đảm bảo công bằng 100%.</p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {Object.entries(ROOMMATES).map(([key, rm]) => {
-                    const stats = taskStatistics[key];
-                    return (
-                      <div key={key} className={`border ${rm.border} rounded-2xl p-4 bg-gradient-to-b from-white to-slate-50`}>
-                        <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-100">
-                          <span className="text-xl">{rm.avatar}</span>
-                          <span className="font-bold text-sm text-slate-800">{rm.name}</span>
-                          <span className={`text-[10px] px-2.5 py-1 rounded-xl font-black ${rm.badge}`}>{stats.total} Ca Trực</span>
+                      {currentDayDetail === 31 && (
+                        <div className="text-[10px] text-amber-200 bg-amber-500/10 p-2.5 rounded-xl border border-amber-500/20 mt-2">
+                          <p className="font-bold">💡 Ca cắt giảm hôm nay:</p>
+                          <p className="mt-1">Nhiệm vụ Quét nhà & Đổ rác đã được tự động huỷ bỏ để chia đều 100% công việc cho cả phòng.</p>
                         </div>
-                        <div className="space-y-1.5 text-[11px] text-slate-600">
-                          <div className="flex justify-between"><span>🧹 Quét nhà:</span><span className="font-bold">{stats.QUET_NHA} buổi</span></div>
-                          <div className="flex justify-between"><span>💧 Lau nhà:</span><span className="font-bold">{stats.LAU_NHA} buổi</span></div>
-                          <div className="flex justify-between"><span>🗑️ Đổ rác:</span><span className="font-bold">{stats.DO_RAC} buổi</span></div>
-                          <div className="flex justify-between"><span>☕ Dọn bếp:</span><span className="font-bold">{stats.DON_BEP} buổi</span></div>
-                          <div className="flex justify-between"><span>🌿 Ban công:</span><span className="font-bold">{stats.BAN_CONG} buổi</span></div>
-                          <div className="flex justify-between"><span>✨ Chà sàn:</span><span className="font-bold">{stats.CHA_SAN_GUONG} buổi</span></div>
-                          <div className="flex justify-between"><span>🚽 Cọ WC:</span><span className="font-bold">{stats.CO_WC} buổi</span></div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-            </div>
-
-            {/* Right Area: Day Detail / Penalties / Rules */}
-            <div className="space-y-6">
-
-              {/* Selected Day Details Card */}
-              <div className="bg-indigo-950 text-white rounded-3xl p-6 shadow-lg relative overflow-hidden">
-                <div className="absolute -right-12 -top-12 w-40 h-40 bg-indigo-800 rounded-full blur-2xl opacity-40"></div>
-                <div className="relative space-y-4">
-                  <span className="px-3 py-1 bg-white/10 text-white text-[10px] font-bold rounded-full uppercase tracking-wider">Chi Tiết Trực Nhật</span>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-xl font-black">{getDayName(scheduleData[currentDayDetail - 1].dayOfWeek)}</h3>
-                      <p className="text-indigo-200 text-sm">Ngày {currentDayDetail} Tháng {currentMonth}</p>
-                    </div>
-                    <div className="flex gap-1">
-                      <button disabled={currentDayDetail === 1} onClick={() => setCurrentDayDetail(prev => Math.max(1, prev - 1))} className="p-2 bg-white/10 hover:bg-white/20 disabled:opacity-30 rounded-xl">◀</button>
-                      <button disabled={currentDayDetail === daysInMonth} onClick={() => setCurrentDayDetail(prev => Math.min(daysInMonth, prev + 1))} className="p-2 bg-white/10 hover:bg-white/20 disabled:opacity-30 rounded-xl">▶</button>
+                      )}
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    {scheduleData[currentDayDetail - 1].tasks.map((task, idx) => {
-                      const rm = ROOMMATES[task.assignee];
-                      const meta = TASKS[task.type];
-                      const isDone = isTaskCompleted(currentDayDetail, task.type);
-                      return (
-                        <div key={idx} onClick={() => toggleTaskComplete(currentDayDetail, task.type)} className={`flex items-center justify-between p-3 rounded-2xl cursor-pointer transition-all ${isDone ? 'bg-emerald-950/40 border border-emerald-500/30 text-emerald-300' : 'bg-white/5 border border-white/10 hover:bg-white/10'}`}>
-                          <div className="flex items-center gap-3">
-                            <div>
-                              <p className={`text-xs font-bold ${isDone ? 'line-through text-emerald-400' : ''}`}>{meta.name}</p>
-                              <p className="text-[10px] text-indigo-300">Hạn chót: 23:30</p>
-                            </div>
+                  {/* NOTIFICATION CONTROLLER */}
+                  {notifSupported && (
+                    <div className="bg-white rounded-3xl p-6 shadow-sm border border-indigo-100 bg-gradient-to-br from-indigo-50/20 to-white">
+                      <h3 className="font-extrabold text-slate-900 text-base mb-1 flex items-center gap-2">⏰ Chuông Báo Giờ Trực</h3>
+                      <p className="text-slate-400 text-[11px] mb-4">Nhận nhắc nhở lúc <b>20h00 tối</b> cho các việc chưa hoàn thành.</p>
+                      
+                      <div className="space-y-3">
+                        <div className="bg-white border border-slate-100 p-3 rounded-2xl shadow-sm flex items-center justify-between">
+                          <span className="text-xs font-bold text-slate-700">Giờ nhắc nhở</span>
+                          <input 
+                            type="time" 
+                            value={notifTime} 
+                            onChange={(e) => setNotifTime(e.target.value)}
+                            className="bg-slate-50 border border-slate-200 text-xs font-bold rounded-lg p-1.5 text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500/20 cursor-pointer"
+                          />
+                        </div>
+
+                        {/* Chọn tên thành viên muốn gán thiết bị trước khi kích hoạt */}
+                        <div className="bg-white border border-slate-100 p-3 rounded-2xl shadow-sm space-y-2">
+                          <span className="text-xs font-bold text-slate-700 block">Kích hoạt thiết bị cho ai?</span>
+                          <div className="flex gap-1">
+                            {Object.entries(ROOMMATES).map(([key, value]) => (
+                              <button 
+                                key={key} 
+                                onClick={() => setRegisteringUser(key)} 
+                                className={`flex-1 py-1.5 rounded-xl text-xs font-bold border transition-all ${registeringUser === key ? `${value.badge} border-current` : 'bg-slate-50 text-slate-400 border-transparent'}`}
+                              >
+                                {value.name}
+                              </button>
+                            ))}
                           </div>
-                          <div className="flex items-center gap-2">
-                            <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold ${rm.badge}`}>{rm.name}</span>
-                            {isDone ? (
-                              <span className="text-xs">✅</span>
+                        </div>
+
+                        <div className="flex items-center justify-between p-3 rounded-2xl bg-white border border-slate-100 shadow-sm">
+                          <div>
+                            <p class="text-xs font-bold text-slate-800">Quyền thông báo</p>
+                            <p className="text-[10px] text-slate-400">
+                              {notifPermission === 'granted' ? '🟢 Đã kích hoạt' : notifPermission === 'denied' ? '🔴 Đã chặn' : '🟡 Chưa đăng ký'}
+                            </p>
+                          </div>
+                          {notifPermission !== 'granted' ? (
+                            <button 
+                              onClick={requestNotifPermission}
+                              className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition-all"
+                            >
+                              Kích hoạt
+                            </button>
+                          ) : (
+                            <span className="text-xs text-emerald-600 font-bold bg-emerald-50 px-2.5 py-1 rounded-xl">Đã cho phép</span>
+                          )}
+                        </div>
+
+                        {/* Hiển thị danh sách thành viên thực sự ĐÃ ĐĂNG KÝ THÀNH CÔNG */}
+                        <div className="p-3 bg-indigo-50/50 border border-indigo-100 rounded-2xl text-[11px] space-y-1 text-indigo-900">
+                          <p className="font-extrabold flex items-center gap-1">📢 Máy đã vào Cơ sở dữ liệu:</p>
+                          <div className="flex gap-1.5 flex-wrap pt-1">
+                            {activeSubscribers.length === 0 ? (
+                              <span className="text-slate-400 italic">Chưa có máy nào đăng ký</span>
                             ) : (
-                              <span className="text-xs">⬜</span>
+                              activeSubscribers.map((nameKey, i) => {
+                                const rm = ROOMMATES[nameKey] || { name: nameKey, avatar: '📱', badge: 'bg-slate-100' };
+                                return (
+                                  <span key={i} className={`px-2 py-0.5 rounded-md font-bold text-[10px] ${rm.badge}`}>
+                                    {rm.avatar} {rm.name}
+                                  </span>
+                                );
+                              })
                             )}
                           </div>
                         </div>
-                      );
-                    })}
 
-                    {scheduleData[currentDayDetail - 1].tasks.length === 0 && (
-                      <p className="text-indigo-200 text-xs italic">Không có nhiệm vụ nào hôm nay! 🎉</p>
-                    )}
-                  </div>
-
-                  {scheduleData[currentDayDetail - 1].trimmedTasks.length > 0 && (
-                    <div className="text-[10px] text-amber-200 bg-amber-500/10 p-2.5 rounded-xl border border-amber-500/20 mt-2">
-                      <p className="font-bold">💡 Ca cắt giảm hôm nay:</p>
-                      <p className="mt-1">
-                        {scheduleData[currentDayDetail - 1].trimmedTasks.map(t => TASKS[t].name).join(', ')} đã bị huỷ bỏ để chia đều 100% công việc cho cả phòng.
-                      </p>
+                        <button 
+                          onClick={triggerTestNotification}
+                          className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-2xl transition-all flex items-center justify-center gap-1.5"
+                        >
+                          🔔 Gửi thử một thông báo
+                        </button>
+                      </div>
                     </div>
                   )}
-                </div>
-              </div>
 
-              {/* NOTIFICATION CONTROLLER */}
-              {notifSupported && (
-                <div className="bg-white rounded-3xl p-6 shadow-sm border border-indigo-100 bg-gradient-to-br from-indigo-50/20 to-white">
-                  <h3 className="font-extrabold text-slate-900 text-base mb-1 flex items-center gap-2">⏰ Chuông Báo Giờ Trực</h3>
-                  <p className="text-slate-400 text-[11px] mb-4">Gửi nhắc nhở tự động lúc <b>20h00 (8h tối)</b> mỗi ngày cho các công việc chưa hoàn thành.</p>
-
-                  <div className="space-y-3">
-                    {/* Time Selector Dropdown */}
-                    <div className="bg-white border border-slate-100 p-3 rounded-2xl shadow-sm flex items-center justify-between">
-                      <span className="text-xs font-bold text-slate-700">Giờ nhắc nhở</span>
-                      <input
-                        type="time"
-                        value={notifTime}
-                        onChange={(e) => setNotifTime(e.target.value)}
-                        className="bg-slate-50 border border-slate-200 text-xs font-bold rounded-lg p-1.5 text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500/20 cursor-pointer"
-                      />
+                  {/* Penalty Monitor */}
+                  <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+                    <h3 className="font-extrabold text-slate-900 text-base mb-1 flex items-center gap-2">⚠️ Sổ Phạt Đóng Quỹ</h3>
+                    <p className="text-slate-400 text-[11px] mb-4">Sổ phạt tự động lưu riêng biệt theo từng tháng.</p>
+                    <div className="space-y-3">
+                      {Object.entries(ROOMMATES).map(([key, value]) => {
+                        const missed = activePenalties[key] || 0;
+                        const fine = calculateFine(missed);
+                        return (
+                          <div key={key} className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-100">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xl">{value.avatar}</span>
+                              <div>
+                                <p className="font-bold text-xs text-slate-800">{value.name}</p>
+                                <p className="text-[10px] text-slate-400">Trễ/Quên: {missed} buổi</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="flex items-center bg-white border border-slate-200 rounded-lg px-1.5 py-0.5 gap-1.5 shadow-sm">
+                                <button onClick={() => updatePenalty(key, -1)} className="px-1.5 text-xs font-bold">-</button>
+                                <span className="text-xs font-semibold w-4 text-center">{missed}</span>
+                                <button onClick={() => updatePenalty(key, 1)} className="px-1.5 text-xs font-bold">+</button>
+                              </div>
+                              <span className={`text-xs font-bold min-w-[70px] text-right ${fine > 0 ? 'text-rose-600' : 'text-slate-400'}`}>
+                                {fine > 0 ? `${fine.toLocaleString('vi-VN')}đ` : 'Tốt'}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-
-                    <div className="flex items-center justify-between p-3 rounded-2xl bg-white border border-slate-100 shadow-sm">
-                      <div>
-                        <p className="text-xs font-bold text-slate-800">Quyền thông báo</p>
-                        <p className="text-[10px] text-slate-400">
-                          {notifPermission === 'granted' ? '🟢 Đã kích hoạt' : notifPermission === 'denied' ? '🔴 Đã chặn' : '🟡 Chưa đăng ký'}
-                        </p>
-                      </div>
-                      {notifPermission !== 'granted' ? (
-                        <button
-                          onClick={requestNotifPermission}
-                          className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition-all"
-                        >
-                          Kích hoạt
-                        </button>
-                      ) : (
-                        <span className="text-xs text-emerald-600 font-bold bg-emerald-50 px-2.5 py-1 rounded-xl">Đã cho phép</span>
-                      )}
-                    </div>
-
-                    <button
-                      onClick={triggerTestNotification}
-                      className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-2xl transition-all flex items-center justify-center gap-1.5"
-                    >
-                      🔔 Gửi thử một thông báo
-                    </button>
                   </div>
+
+                  {/* Khế Ước Phòng */}
+                  <div className="bg-gradient-to-br from-rose-50 to-amber-50 rounded-3xl p-5 border border-rose-100 space-y-3">
+                    <h4 className="font-bold text-xs text-rose-950 uppercase tracking-wider">📜 Nội Quy Phòng Trực</h4>
+                    <ul className="space-y-2 text-[11px] text-rose-900/90 leading-relaxed font-medium">
+                      <li>• Phải xong việc trước **23:30** mỗi ngày.</li>
+                      <li>• Bận việc được nhờ hoặc đổi ca chéo tự nguyện.</li>
+                      <li>• **Quên 1 buổi**: Nhắc nhở và làm bù vào hôm sau.</li>
+                      <li>• **Quên 2 buổi**: Phạt **50.000đ** nộp quỹ mua xà phòng, túi rác.</li>
+                      <li>• **Từ buổi thứ 3 trở đi**: Phạt **100.000đ/buổi** + tự dọn việc đó suốt tuần sau!</li>
+                    </ul>
+                  </div>
+
+                  <button onClick={resetMonthlyProgress} className="w-full text-slate-400 hover:text-slate-600 text-[10px] font-bold text-center border border-dashed border-slate-200 hover:border-slate-300 py-3 rounded-2xl transition-all">
+                    🔄 ĐẶT LẠI TRẠNG THÁI THÁNG {currentMonth} / {currentYear}
+                  </button>
+
                 </div>
-              )}
 
-              {/* Penalty Monitor */}
-              <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-                <h3 className="font-extrabold text-slate-900 text-base mb-1 flex items-center gap-2">⚠️ Sổ Phạt Đóng Quỹ</h3>
-                <p className="text-slate-400 text-[11px] mb-4">Sổ phạt tự động lưu riêng biệt theo từng tháng.</p>
-                <div className="space-y-3">
-                  {Object.entries(ROOMMATES).map(([key, value]) => {
-                    const missed = activePenalties[key] || 0;
-                    const fine = calculateFine(missed);
-                    return (
-                      <div key={key} className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-100">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xl">{value.avatar}</span>
-                          <div>
-                            <p className="font-bold text-xs text-slate-800">{value.name}</p>
-                            <p className="text-[10px] text-slate-400">Trễ/Quên: {missed} buổi</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="flex items-center bg-white border border-slate-200 rounded-lg px-1.5 py-0.5 gap-1.5 shadow-sm">
-                            <button onClick={() => updatePenalty(key, -1)} className="px-1.5 text-xs font-bold">-</button>
-                            <span className="text-xs font-semibold w-4 text-center">{missed}</span>
-                            <button onClick={() => updatePenalty(key, 1)} className="px-1.5 text-xs font-bold">+</button>
-                          </div>
-                          <span className={`text-xs font-bold min-w-[70px] text-right ${fine > 0 ? 'text-rose-600' : 'text-slate-400'}`}>
-                            {fine > 0 ? `${fine.toLocaleString('vi-VN')}đ` : 'Tốt'}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
               </div>
-
-              {/* Khế Ước Phòng */}
-              <div className="bg-gradient-to-br from-rose-50 to-amber-50 rounded-3xl p-5 border border-rose-100 space-y-3">
-                <h4 className="font-bold text-xs text-rose-950 uppercase tracking-wider">📜 Nội Quy Phòng Trực</h4>
-                <ul className="space-y-2 text-[11px] text-rose-900/90 leading-relaxed font-medium">
-                  <li>• Phải xong việc trước **23:30** mỗi ngày.</li>
-                  <li>• Bận việc được nhờ hoặc đổi ca chéo tự nguyện.</li>
-                  <li>• **Quên 1 buổi**: Nhắc nhở và làm bù vào hôm sau.</li>
-                  <li>• **Quên 2 buổi**: Phạt **50.000đ** nộp quỹ mua xà phòng, túi rác.</li>
-                  <li>• **Từ buổi thứ 3 trở đi**: Phạt **100.000đ/buổi** + tự dọn việc đó suốt tuần sau!</li>
-                </ul>
-              </div>
-
-              {/* Reset Button for current month */}
-              <button onClick={resetMonthlyProgress} className="w-full text-slate-400 hover:text-slate-600 text-[10px] font-bold text-center border border-dashed border-slate-200 hover:border-slate-300 py-3 rounded-2xl transition-all">
-                🔄 ĐẶT LẠI TRẠNG THÁI THÁNG {currentMonth} / {currentYear}
-              </button>
-
             </div>
+          );
+        }
 
-          </div>
-        </div>
-      );
-    }
-
-    // Khởi tạo và dựng trang ứng dụng React an toàn
-    const container = document.getElementById('root');
-    if (container) {
-      const root = ReactDOM.createRoot(container);
-      root.render(<App />);
-    }
-  </script>
+        const container = document.getElementById('root');
+        if (container) {
+          const root = ReactDOM.createRoot(container);
+          root.render(<App />);
+        }
+    </script>
 </body>
-
 </html>
