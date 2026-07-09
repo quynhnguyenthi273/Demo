@@ -153,24 +153,71 @@ app.get('/api/active-subscribers', async (req, res) => {
 // API Gửi thông báo đẩy hàng loạt
 app.post('/api/send-reminders', async (req, res) => {
   try {
+    // Nếu VAPID chưa được cấu hình đúng thì báo lỗi ngay, không âm thầm "thành công"
+    if (!pubKey || !privKey || pubKey.includes("Thay_The_Bang") || privKey.includes("Thay_The_Bang")) {
+      return res.status(500).json({
+        success: false,
+        error: "VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY chưa được cấu hình đúng trên server."
+      });
+    }
+
     const subscriptions = await Subscription.find();
-    
+
     const payload = JSON.stringify({
       title: "⏰ Nhắc nhở trực nhật hôm nay",
       body: "Hãy kiểm tra các công việc trực nhật chưa hoàn thành của bạn và làm ngay trước 23H30 nhé bạn yêu!",
       icon: "https://cdn-icons-png.flaticon.com/512/1048/1048953.png"
     });
 
-    const pushPromises = subscriptions.map(sub => 
-      webpush.sendNotification(sub, payload).catch(err => {
-        if (err.statusCode === 410 || err.statusCode === 404) {
-          return Subscription.deleteOne({ _id: sub._id });
+    let successCount = 0;
+    let failCount = 0;
+    const failures = [];
+
+    const pushPromises = subscriptions.map(sub => {
+      // Chuyển Mongoose Document thành object thuần { endpoint, expirationTime, keys } đúng định dạng web-push cần
+      const plainSub = {
+        endpoint: sub.endpoint,
+        expirationTime: sub.expirationTime || null,
+        keys: {
+          p256dh: sub.keys.p256dh,
+          auth: sub.keys.auth
         }
-      })
-    );
+      };
+
+      return webpush.sendNotification(plainSub, payload)
+        .then(() => {
+          successCount++;
+        })
+        .catch(err => {
+          failCount++;
+          const info = {
+            roommate: sub.roommate,
+            endpoint: sub.endpoint.slice(0, 60) + '...',
+            statusCode: err.statusCode,
+            body: err.body
+          };
+          failures.push(info);
+
+          if (err.statusCode === 410 || err.statusCode === 404) {
+            // Subscription đã hết hạn / bị thu hồi -> xoá khỏi DB
+            console.warn(`⚪ Subscription hết hạn, đang xoá (${sub.roommate}):`, err.statusCode);
+            return Subscription.deleteOne({ _id: sub._id });
+          } else {
+            // Log rõ ràng để không còn lỗi bị "nuốt" âm thầm
+            console.error(`🔴 Gửi push thất bại cho ${sub.roommate} (${info.endpoint}):`, err.statusCode, err.body);
+          }
+        });
+    });
 
     await Promise.all(pushPromises);
-    res.json({ success: true, message: `Đã gửi nhắc nhở thành công tới ${subscriptions.length} thiết bị!` });
+
+    res.json({
+      success: failCount === 0,
+      message: `Đã gửi thành công ${successCount}/${subscriptions.length} thiết bị${failCount > 0 ? `, thất bại ${failCount} thiết bị` : ''}.`,
+      successCount,
+      failCount,
+      failures // chi tiết lỗi để debug, có thể bỏ field này khi lên production thật
+    });
   } catch (error) {
     console.error("Lỗi gửi thông báo:", error);
     res.status(500).json({ error: error.message });
