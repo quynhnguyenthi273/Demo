@@ -374,7 +374,9 @@
         }
 
         try {
-          const registration = await navigator.serviceWorker.register('/sw.js');
+          // THAY ĐỔI Ở ĐÂY: Lấy Service Worker đã được đăng ký từ useEffect thay vì đăng ký lại
+          const registration = await navigator.serviceWorker.ready;
+
           const permission = await Notification.requestPermission();
           setNotifPermission(permission);
 
@@ -386,12 +388,12 @@
 
             const subscription = await registration.pushManager.subscribe(subscribeOptions);
 
-            // Gửi thông tin đăng ký kèm theo tên viết tắt của roommate đăng ký
+            // Gửi lên Backend
             await fetch(`${BACKEND_URL}/api/subscribe`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                subscription: subscription.toJSON(), // Fix lỗi serialization trên Safari/iOS
+                subscription: subscription.toJSON(),
                 roommate: registeringUser
               })
             });
@@ -401,7 +403,7 @@
           }
         } catch (err) {
           console.error("Lỗi đăng ký Web Push:", err);
-          showAlert("❌ Không thể kết nối", "Vui lòng mở ứng dụng từ màn hình chính (iPhone) hoặc kết nối HTTPS an toàn để bật tính năng.");
+          showAlert("❌ Không thể kết nối", "Vui lòng kiểm tra lại quyền thông báo của trình duyệt.");
         }
       };
 
